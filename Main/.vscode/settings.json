@@ -1,0 +1,24 @@
+{
+    "python.autoComplete.extraPaths": [
+        "/opt/Slicer-5.2.1-linux-amd64/",
+        "/opt/Slicer-5.2.1-linux-amd64/lib/",
+        "/opt/Slicer-5.2.1-linux-amd64/lib/Python",
+        "/opt/Slicer-5.2.1-linux-amd64/lib/QtPlugins",
+        "/opt/Slicer-5.2.1-linux-amd64/lib/Slicer-5.2",
+        "/opt/Slicer-5.2.1-linux-amd64/bin",
+    ],
+    "python.linting.pylintPath": "/opt/Slicer-5.2.1-linux-amd64/lib/Python/bin/pylint",
+    "python.analysis.extraPaths": [
+        "/opt/Slicer-5.2.1-linux-amd64/",
+        "/opt/Slicer-5.2.1-linux-amd64/lib/",
+        "/opt/Slicer-5.2.1-linux-amd64/lib/Python",
+        "/opt/Slicer-5.2.1-linux-amd64/lib/QtPlugins",
+        "/opt/Slicer-5.2.1-linux-amd64/lib/Slicer-5.2",
+        "/opt/Slicer-5.2.1-linux-amd64/bin"
+    ],
+    // "python.analysis.autoImportCompletions": true,
+    "python.linting.enabled": true,
+    "python.formatting.autopep8Path": "/opt/Slicer-5.2.1-linux-amd64/lib/Python/bin/autopep8",
+
+
+}
