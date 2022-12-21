@@ -301,6 +301,7 @@ class MainWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.updateBtnLoadDirectory()
         
     def setSegmentationNodesToInvisible(self):
+        # Sets the visibility of the segmentation nodes to 0. It does not set the visibility of each segment to 0
         for i in range(slicer.mrmlScene.GetNumberOfNodesByClass('vtkMRMLSegmentationNode')):
             slicer.mrmlScene.GetNthNodeByClass(i, 'vtkMRMLSegmentationNode').SetDisplayVisibility(0)
 
@@ -320,23 +321,7 @@ class MainWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
         print(f"Loading {segmentation_dir_path}")
         slicer.util.loadVolume(str(segmentation_dir_path / "img_0.nii.gz"), properties={"name": f"{segmentation_dir_path / 'img_0.nii.gz'}", "labelmap": False, "singleFile": True, "show": True})
-
-        # slicer.util.loadVolume("/home/alistair/Code/MS_Lesion/MS_Code/model/MS_Net/vnet_predictions/Public_Patient0/img_0.nii.gz")
-        # slicer.util.loadVolume(str(segmentation_dir_path / "img_0.nii.gz"))
-        # print(slicer.mrmlScene)
-        # IMAGE_PATTERN = "img_*_"
-        # print(bytes(self.ui.pthLoadSegmentationDirectory.currentPath, "utf-8"))
-        # print("loading??")
-        # pass
-
-        # with slicer.util.tryWithErrorDisplay("Failed to load image.", waitCursor=True):
-        #     slicer.util.loadSegmentation("/home/alistair/Code/SlicerTestExtension/TestExtension/DoStuff/Resources/test_data/Segmentation.seg.nrrd")
-        #     print("Loaded!")
-
-        
-
-        
-
+        slicer.util.loadSegmentation(str(segmentation_dir_path / "img_0_segmentation.nii.gz"), properties={"name": f"{segmentation_dir_path / 'img_0_segmentation.nii.gz'}"})
 
         
 #
