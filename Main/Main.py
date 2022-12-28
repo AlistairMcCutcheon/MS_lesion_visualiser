@@ -328,13 +328,15 @@ class MainWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         print(f"Loading {segmentation_dir_path}")
         slicer.util.loadVolume(str(segmentation_dir_path / "img_0.nii.gz"), properties={"name": f"{segmentation_dir_path / 'img_0.nii.gz'}", "labelmap": False, "singleFile": True, "show": True})
         slicer.util.loadSegmentation(str(segmentation_dir_path / "img_0_segmentation.nii.gz"), properties={"name": f"{segmentation_dir_path / 'img_0_segmentation.nii.gz'}"})
-
+        self.ui.nextButton.setEnabled(True)
 
     def onPrevButton(self):
-        pass 
+        self.ui.prevButton.setEnabled(False)
+        self.ui.nextButton.setEnabled(True) 
 
     def onNextButton(self):
-        pass
+        self.ui.prevButton.setEnabled(True)
+        self.ui.nextButton.setEnabled(False)
 
     def onCompareButton(self):
         pass
