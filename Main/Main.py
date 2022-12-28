@@ -148,6 +148,9 @@ class MainWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         # self.ui.applyButton.connect('clicked(bool)', self.onApplyButton)
         self.ui.pthLoadSegmentationDirectory.connect('currentPathChanged(QString)', self.onSegmentationDirectoryModified)
         self.ui.btnLoadDirectory.connect("clicked(bool)", self.onLoadSegmentationDirectory)
+        self.ui.prevButton.connect("clicked(bool)", self.onPrevButton)
+        self.ui.nextButton.connect("clicked(bool)", self.onNextButton)
+        self.ui.btnCompare.connect("clicked(bool)", self.onCompareButton)
 
         # Make sure parameter node is initialized (needed for module reload)
         self.initializeParameterNode()
@@ -326,7 +329,16 @@ class MainWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         slicer.util.loadVolume(str(segmentation_dir_path / "img_0.nii.gz"), properties={"name": f"{segmentation_dir_path / 'img_0.nii.gz'}", "labelmap": False, "singleFile": True, "show": True})
         slicer.util.loadSegmentation(str(segmentation_dir_path / "img_0_segmentation.nii.gz"), properties={"name": f"{segmentation_dir_path / 'img_0_segmentation.nii.gz'}"})
 
-        
+
+    def onPrevButton(self):
+        pass 
+
+    def onNextButton(self):
+        pass
+
+    def onCompareButton(self):
+        pass
+
 #
 # MainLogic
 #

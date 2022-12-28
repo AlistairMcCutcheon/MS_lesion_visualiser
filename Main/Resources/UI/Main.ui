@@ -75,6 +75,9 @@
       </item>
       <item>
        <widget class="QPushButton" name="prevButton">
+        <property name="enabled">
+         <bool>false</bool>
+        </property>
         <property name="text">
          <string>Load Previous Image</string>
         </property>
@@ -84,6 +87,16 @@
        <widget class="QPushButton" name="nextButton">
         <property name="text">
          <string>Load Next Image</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="btnCompare">
+        <property name="enabled">
+         <bool>false</bool>
+        </property>
+        <property name="text">
+         <string>Compare with Previous Image</string>
         </property>
        </widget>
       </item>
