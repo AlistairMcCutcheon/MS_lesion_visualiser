@@ -1,14 +1,12 @@
 import logging
 import os
-import glob
+from pathlib import Path
 import vtk
-import itertools
 import slicer
 from slicer.ScriptedLoadableModule import *
 from slicer.util import VTKObservationMixin, getNode, getNodes
-from pathlib import Path
-import inspect
-import errno
+from packages.utils.temp_dir import TempDir
+from packages.testing.test_segmentation_dir import SegmentationDirectoryTest
 #
 # Main
 #
@@ -345,87 +343,6 @@ class MainWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         pass
 
 
-class SegmentationDirFileNames:
-    @classmethod
-    def img(cls, index: int) -> str:
-        return f"img_{index}.nii.gz"
-
-    @classmethod
-    def img_segmentation(cls, index: int) -> str:
-        return f"img_{index}_segmentation.nii.gz"
-
-    @classmethod
-    def sub_img(cls, index: int) -> str:
-        return f"img_sub_{index}.nii.gz"
-
-    @classmethod
-    def sub_img_segmentation(cls, index: int) -> str:
-        return f"img_sub_{index}_segmentation.nii.gz"
-
-
-
-
-class InvalidSegmentationDirectoryError(ValueError):
-    def __init__(self, path: str) -> None:
-        super().__init__(f"Not a valid segmentation directory: {path}")
-
-class SegmentationDirectory:
-    def __init__(self, dir_path: str) -> None:
-        try:
-            SegmentationDirectory.validate(Path(dir_path))
-        except FileNotFoundError as e:
-            raise InvalidSegmentationDirectoryError(dir_path) from e
-
-        self.dir_path = Path(dir_path)
-        self.imgs = []
-        self.imgs_segmentations = []
-        self.sub_imgs = []
-        self.sub_imgs_segmentations = []
-        self.load_imgs_and_segmentations()
-        self.load_sub_imgs_and_sub_segmentations()
-        
-    @classmethod
-    def validate(cls, dir_path: Path) -> None:
-        if not dir_path.exists():
-            raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), str(dir_path))
-        if not (dir_path / SegmentationDirFileNames.img(0)).exists():
-            raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), str(dir_path / SegmentationDirFileNames.img(0)))
-        if not (dir_path / SegmentationDirFileNames.img_segmentation(0)):
-            raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), str(dir_path / SegmentationDirFileNames.img_segmentation(0)))
-
-    def load_imgs_and_segmentations(self):
-        for i in itertools.count():
-            img_file_path = self.dir_path / SegmentationDirFileNames.img(i)
-            img_segmentation_file_path = self.dir_path / SegmentationDirFileNames.img_segmentation(i)
-            try: 
-                self.validate_img_segmentation_pair(img_file_path, img_segmentation_file_path)
-            except FileNotFoundError:
-                break
-
-            self.imgs.append(img_file_path)
-            self.imgs_segmentations.append(img_segmentation_file_path)
-
-    def load_sub_imgs_and_sub_segmentations(self):
-        for i in itertools.count():
-            img_file_path = self.dir_path / SegmentationDirFileNames.sub_img(i)
-            sub_img_segmentation_file_path = self.dir_path / SegmentationDirFileNames.sub_img_segmentation(i)
-            try: 
-                self.validate_img_segmentation_pair(img_file_path, sub_img_segmentation_file_path)
-            except FileNotFoundError:
-                break
-
-            self.sub_imgs.append(img_file_path)
-            self.sub_imgs_segmentations.append(sub_img_segmentation_file_path)
-
-    def validate_img_segmentation_pair(self, img_file_path, segmentation_file_path):
-        if not img_file_path.exists() and not segmentation_file_path.exists():
-            raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), str(img_file_path))
-        if img_file_path.exists() and not segmentation_file_path.exists():
-            logging.warning(f"Missing segmentation file: {segmentation_file_path}")
-            raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), str(segmentation_file_path))
-        if not img_file_path.exists() and segmentation_file_path.exists():
-            logging.warning(f"Missing image file: {img_file_path}")
-            raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), str(img_file_path))
 
 
 
@@ -506,7 +423,8 @@ class MainTest(ScriptedLoadableModuleTest):
         """ Do whatever is needed to reset the state - typically a scene clear will be enough.
         """
         slicer.mrmlScene.Clear()
-        SegmentationDirectoryTest().runTest()
+        with TempDir(Path(__file__).parent.parent / "temp_test_assets") as temp_dir_path:
+            SegmentationDirectoryTest(temp_dir_path).runTest()
 
     def runTest(self):
         """Run as few or as many tests as needed here.
@@ -560,49 +478,5 @@ class MainTest(ScriptedLoadableModuleTest):
 
         self.delayDisplay('Test passed')
 
-class TestFailedError(Exception):
-    pass
 
-class SegmentationDirectoryTest:
-    def runTest(self):
-        """Run as few or as many tests as needed here.
-        """
-        for method_name, method in inspect.getmembers(self, predicate=inspect.ismethod):
-            if not method_name.startswith("test_"):
-                continue
-            print(f"Running: {method_name}")
-            method()
-            print(f"Completed: {method_name}")
 
-    def test_invalid_path(self):
-        try:
-            SegmentationDirectory(dir_path="/not/a/valid/path")
-        except InvalidSegmentationDirectoryError:
-            return
-        raise TestFailedError()
-
-    def test_missing_dir(self):
-        try:
-            SegmentationDirectory(dir_path=Path(__file__).parent.parent / "test_assets" / "missing_dir")
-        except InvalidSegmentationDirectoryError:
-            return
-        raise TestFailedError()
-
-    def test_empty_dir(self):
-        try:
-            SegmentationDirectory(dir_path=Path(__file__).parent.parent / "test_assets" / "empty_dir")
-        except InvalidSegmentationDirectoryError:
-            return
-        raise TestFailedError()
-
-    def test_1_img_1_segmentation(self):
-        pass
-
-    def test_2_img_2_segmentation(self):
-        pass
-
-    def test_1_img_0_segmentation(self):
-        pass
-
-    def test_0_img_1_segmentation(self):
-        pass
