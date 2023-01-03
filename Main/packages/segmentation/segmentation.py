@@ -49,7 +49,7 @@ class SegmentationDir:
             raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), str(dir_path))
         if not (dir_path / SegmentationDirFileNames.img(0)).exists():
             raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), str(dir_path / SegmentationDirFileNames.img(0)))
-        if not (dir_path / SegmentationDirFileNames.img_segmentation(0)):
+        if not (dir_path / SegmentationDirFileNames.img_segmentation(0)).exists():
             raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), str(dir_path / SegmentationDirFileNames.img_segmentation(0)))
 
     def load_imgs_and_segmentations(self):
