@@ -2,7 +2,7 @@ import inspect
 from packages.segmentation.segmentation import *
 from packages.testing.utils import *
 from packages.utils.temp_dir import TempDir
-
+import logging
 
 class SegmentationDirectoryTest:
     def __init__(self, test_dir_path: str) -> None:
@@ -14,9 +14,8 @@ class SegmentationDirectoryTest:
         for method_name, method in inspect.getmembers(self, predicate=inspect.ismethod):
             if not method_name.startswith("test_"):
                 continue
-            print(f"Running: {method_name}")
             method()
-            print(f"Completed: {method_name}")
+            logging.debug(f"Completed: {method_name}")
 
     def test_invalid_path(self):
         try:
