@@ -3,7 +3,7 @@ import errno
 import os
 from pathlib import Path
 import logging
-from packages.segmentation import file_names
+from packages.segmentation.file_types import FileType, file_type_to_name
 
 
 class InvalidSegmentationDirError(ValueError):
@@ -12,69 +12,63 @@ class InvalidSegmentationDirError(ValueError):
 
 class SegmentationDir:
     def __init__(self, dir_path: str) -> None:
-        try:
-            SegmentationDir.validate(Path(dir_path))
-        except FileNotFoundError as e:
-            raise InvalidSegmentationDirError(dir_path) from e
 
         self.dir_path = Path(dir_path)
-        self.imgs = []
-        self.imgs_segmentations = []
-        self.sub_imgs = []
-        self.sub_imgs_segmentations = []
-        self.load_imgs_and_segmentations()
-        self.load_sub_imgs_and_sub_segmentations()
+
+        try:
+            self.validate()
+        except FileNotFoundError as e:
+            raise InvalidSegmentationDirError(self.dir_path) from e
+
+        self.imgs_paths = []
+        self.imgs_segmentations_paths = []
+        self.sub_imgs_paths = []
+        self.sub_imgs_segmentations_paths = []
+        self.load_paths()
         
-    @staticmethod
-    def validate(dir_path: Path) -> None:
-        if not dir_path.exists():
-            raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), str(dir_path))
-        if not (dir_path / file_names.img(0)).exists():
-            raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), str(dir_path / file_names.img(0)))
-        if not (dir_path / file_names.img_segmentation(0)).exists():
-            raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), str(dir_path / file_names.img_segmentation(0)))
+    def validate(self) -> None:
+        if not self.dir_path.exists():
+            raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), str(self.dir_path))
+        if not (self.dir_path / self.get_path(FileType.IMG, 0)).exists():
+            raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), str(self.dir_path / self.get_path(FileType.IMG, 0)))
+        if not (self.dir_path / self.get_path(FileType.IMG_SEGMENTATION, 0)).exists():
+            raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), str(self.dir_path / self.get_path(FileType.IMG_SEGMENTATION, 0)))
 
-    # def load(self):
-    #     self.load_next_img_and_segmentation()
-    #     for i in itertools.count():
-    #         self.load_next_img_and_segmentation()
-    #         self.load_next_sub_img_and_sub_segmentation()
-
-    def load_imgs_and_segmentations(self):
+    def load_paths(self):
+        self.imgs_paths.append(self.get_path(FileType.IMG, 0))
+        self.imgs_segmentations_paths.append(self.get_path(FileType.IMG_SEGMENTATION, 0))
         for i in itertools.count():
-            img_file_path = self.dir_path / file_names.img(i)
-            img_segmentation_file_path = self.dir_path / file_names.img_segmentation(i)
-
-            if not img_file_path.exists() and not img_segmentation_file_path.exists():
+            if self.index_has_no_imgs(i):
                 break
 
-            try: 
-                self.validate_img_segmentation_pair(img_file_path, img_segmentation_file_path)
+            try:
+                self.imgs_paths.append(self.get_path(FileType.IMG, i))
             except FileNotFoundError as e:
                 raise InvalidSegmentationDirError(self.dir_path) from e
 
-            self.imgs.append(img_file_path)
-            self.imgs_segmentations.append(img_segmentation_file_path)
-
-    def load_sub_imgs_and_sub_segmentations(self):
-        for i in itertools.count():
-            img_file_path = self.dir_path / file_names.sub_img(i)
-            sub_img_segmentation_file_path = self.dir_path / file_names.sub_img_segmentation(i)
-            if not img_file_path.exists() and not sub_img_segmentation_file_path.exists():
-                break
-
-            try: 
-                self.validate_img_segmentation_pair(img_file_path, sub_img_segmentation_file_path)
+            try:
+                self.imgs_segmentations_paths.append(self.get_path(FileType.IMG_SEGMENTATION, i))
             except FileNotFoundError as e:
                 raise InvalidSegmentationDirError(self.dir_path) from e
 
-            self.sub_imgs.append(img_file_path)
-            self.sub_imgs_segmentations.append(sub_img_segmentation_file_path)
+            try:
+                sub_img_path = self.get_path(FileType.SUB_IMG, i)
+                sub_img_segmentation_path = self.get_path(FileType.SUB_IMG_SEGMENTATION, i)
+            except FileNotFoundError as e:
+                self.sub_imgs_paths.append(None)
+                self.sub_imgs_segmentations_paths.append(None)
+                logging.warning(e)
+            else:
+                self.sub_imgs_paths.append(sub_img_path)
+                self.sub_imgs_segmentations_paths.append(sub_img_segmentation_path)
 
-    def validate_img_segmentation_pair(self, img_file_path, segmentation_file_path):
-        if not img_file_path.exists():
-            logging.warning(f"Missing image file: {img_file_path}")
-            raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), str(img_file_path))
-        if not segmentation_file_path.exists():
-            logging.warning(f"Missing segmentation file: {segmentation_file_path}")
-            raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), str(segmentation_file_path))
+    def index_has_no_imgs(self, index) -> bool:
+        img_path = Path(self.dir_path) / file_type_to_name(FileType.IMG, index)
+        img_segmentation_path = Path(self.dir_path) / file_type_to_name(FileType.IMG_SEGMENTATION, index)
+        return not img_path.exists() and not img_segmentation_path.exists()
+
+    def get_path(self, file_type: FileType, index) -> str:
+        path = Path(self.dir_path) / file_type_to_name(file_type, index)
+        if not Path(path).exists():
+            raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), str(path))
+        return path

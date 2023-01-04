@@ -1,5 +1,7 @@
 import inspect
-from packages.segmentation.segmentation import *
+from packages.segmentation.segmentation import SegmentationDir, InvalidSegmentationDirError
+from packages.segmentation.file_types import FileType, file_type_to_name
+from pathlib import Path
 from packages.testing.utils import *
 from packages.utils.temp_dir import TempDir
 import logging
@@ -41,21 +43,21 @@ class SegmentationDirectoryTest:
 
     def test_1_img_1_segmentation(self):
         with TempDir(Path(self.test_dir_path) / "test_1_img_1_segmentation") as temp_dir_path:
-            open(Path(temp_dir_path) / file_names.img(0), "w").close()
-            open(Path(temp_dir_path) / file_names.img_segmentation(0), "w").close()
+            open(Path(temp_dir_path) / file_type_to_name(FileType.IMG, 0), "w").close()
+            open(Path(temp_dir_path) / file_type_to_name(FileType.IMG_SEGMENTATION, 0), "w").close()
             SegmentationDir(temp_dir_path)
 
     def test_2_img_2_segmentation(self):
         with TempDir(Path(self.test_dir_path) / "test_2_img_2_segmentation") as temp_dir_path:
-            open(Path(temp_dir_path) / file_names.img(0), "w").close()
-            open(Path(temp_dir_path) / file_names.img(1), "w").close()
-            open(Path(temp_dir_path) / file_names.img_segmentation(0), "w").close()
-            open(Path(temp_dir_path) / file_names.img_segmentation(1), "w").close()
+            open(Path(temp_dir_path) / file_type_to_name(FileType.IMG, 0), "w").close()
+            open(Path(temp_dir_path) / file_type_to_name(FileType.IMG, 1), "w").close()
+            open(Path(temp_dir_path) / file_type_to_name(FileType.IMG_SEGMENTATION, 0), "w").close()
+            open(Path(temp_dir_path) / file_type_to_name(FileType.IMG_SEGMENTATION, 1), "w").close()
             SegmentationDir(temp_dir_path)
 
     def test_1_img_0_segmentation(self):
         with TempDir(Path(self.test_dir_path) / "test_1_img_0_segmentation") as temp_dir_path:
-            open(Path(temp_dir_path) / file_names.img(0), "w").close()
+            open(Path(temp_dir_path) / file_type_to_name(FileType.IMG, 0), "w").close()
             try:
                 SegmentationDir(temp_dir_path)
             except InvalidSegmentationDirError:
@@ -64,7 +66,7 @@ class SegmentationDirectoryTest:
 
     def test_0_img_1_segmentation(self):
         with TempDir(Path(self.test_dir_path) / "test_0_img_1_segmentation") as temp_dir_path:
-            open(Path(temp_dir_path) / file_names.img_segmentation(0), "w").close()
+            open(Path(temp_dir_path) / file_type_to_name(FileType.IMG_SEGMENTATION, 0), "w").close()
             try:
                 SegmentationDir(temp_dir_path)
             except InvalidSegmentationDirError:
@@ -73,9 +75,9 @@ class SegmentationDirectoryTest:
 
     def test_1_img_2_segmentation(self):
         with TempDir(Path(self.test_dir_path) / "test_1_img_2_segmentation") as temp_dir_path:
-            open(Path(temp_dir_path) / file_names.img(0), "w").close()
-            open(Path(temp_dir_path) / file_names.img_segmentation(0), "w").close()
-            open(Path(temp_dir_path) / file_names.img_segmentation(1), "w").close()
+            open(Path(temp_dir_path) / file_type_to_name(FileType.IMG, 0), "w").close()
+            open(Path(temp_dir_path) / file_type_to_name(FileType.IMG_SEGMENTATION, 0), "w").close()
+            open(Path(temp_dir_path) / file_type_to_name(FileType.IMG_SEGMENTATION, 1), "w").close()
             try:
                 SegmentationDir(temp_dir_path)
             except InvalidSegmentationDirError:
@@ -84,9 +86,9 @@ class SegmentationDirectoryTest:
 
     def test_2_img_1_segmentation(self):
         with TempDir(Path(self.test_dir_path) / "test_1_img_2_segmentation") as temp_dir_path:
-            open(Path(temp_dir_path) / file_names.img(0), "w").close()
-            open(Path(temp_dir_path) / file_names.img(1), "w").close()
-            open(Path(temp_dir_path) / file_names.img_segmentation(0), "w").close()
+            open(Path(temp_dir_path) / file_type_to_name(FileType.IMG, 0), "w").close()
+            open(Path(temp_dir_path) / file_type_to_name(FileType.IMG, 1), "w").close()
+            open(Path(temp_dir_path) / file_type_to_name(FileType.IMG_SEGMENTATION, 0), "w").close()
             try:
                 SegmentationDir(temp_dir_path)
             except InvalidSegmentationDirError:
