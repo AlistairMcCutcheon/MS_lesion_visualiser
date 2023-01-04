@@ -3,23 +3,7 @@ import errno
 import os
 from pathlib import Path
 import logging
-
-class SegmentationDirFileNames:
-    @classmethod
-    def img(cls, index: int) -> str:
-        return f"img_{index}.nii.gz"
-
-    @classmethod
-    def img_segmentation(cls, index: int) -> str:
-        return f"img_{index}_segmentation.nii.gz"
-
-    @classmethod
-    def sub_img(cls, index: int) -> str:
-        return f"img_sub_{index}.nii.gz"
-
-    @classmethod
-    def sub_img_segmentation(cls, index: int) -> str:
-        return f"img_sub_{index}_segmentation.nii.gz"
+from packages.segmentation import file_names
 
 
 class InvalidSegmentationDirError(ValueError):
@@ -45,10 +29,10 @@ class SegmentationDir:
     def validate(dir_path: Path) -> None:
         if not dir_path.exists():
             raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), str(dir_path))
-        if not (dir_path / SegmentationDirFileNames.img(0)).exists():
-            raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), str(dir_path / SegmentationDirFileNames.img(0)))
-        if not (dir_path / SegmentationDirFileNames.img_segmentation(0)).exists():
-            raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), str(dir_path / SegmentationDirFileNames.img_segmentation(0)))
+        if not (dir_path / file_names.img(0)).exists():
+            raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), str(dir_path / file_names.img(0)))
+        if not (dir_path / file_names.img_segmentation(0)).exists():
+            raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), str(dir_path / file_names.img_segmentation(0)))
 
     # def load(self):
     #     self.load_next_img_and_segmentation()
@@ -58,8 +42,8 @@ class SegmentationDir:
 
     def load_imgs_and_segmentations(self):
         for i in itertools.count():
-            img_file_path = self.dir_path / SegmentationDirFileNames.img(i)
-            img_segmentation_file_path = self.dir_path / SegmentationDirFileNames.img_segmentation(i)
+            img_file_path = self.dir_path / file_names.img(i)
+            img_segmentation_file_path = self.dir_path / file_names.img_segmentation(i)
 
             if not img_file_path.exists() and not img_segmentation_file_path.exists():
                 break
@@ -74,8 +58,8 @@ class SegmentationDir:
 
     def load_sub_imgs_and_sub_segmentations(self):
         for i in itertools.count():
-            img_file_path = self.dir_path / SegmentationDirFileNames.sub_img(i)
-            sub_img_segmentation_file_path = self.dir_path / SegmentationDirFileNames.sub_img_segmentation(i)
+            img_file_path = self.dir_path / file_names.sub_img(i)
+            sub_img_segmentation_file_path = self.dir_path / file_names.sub_img_segmentation(i)
             if not img_file_path.exists() and not sub_img_segmentation_file_path.exists():
                 break
 
