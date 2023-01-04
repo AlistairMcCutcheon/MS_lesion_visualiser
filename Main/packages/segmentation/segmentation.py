@@ -37,23 +37,22 @@ class SegmentationDir:
     def load_paths(self):
         self.imgs_paths.append(self.get_path(FileType.IMG, 0))
         self.imgs_segmentations_paths.append(self.get_path(FileType.IMG_SEGMENTATION, 0))
-        for i in itertools.count():
-            if self.index_has_no_imgs(i):
+        for imgs_index, sub_imgs_index in zip(itertools.count(1), itertools.count(0)):
+            if self.index_has_no_imgs(imgs_index):
                 break
 
             try:
-                self.imgs_paths.append(self.get_path(FileType.IMG, i))
+                img_path = self.get_path(FileType.IMG, imgs_index)
+                img_segmentation_path = self.get_path(FileType.IMG_SEGMENTATION, imgs_index)
             except FileNotFoundError as e:
                 raise InvalidSegmentationDirError(self.dir_path) from e
+            else:
+                self.imgs_paths.append(img_path)
+                self.imgs_segmentations_paths.append(img_segmentation_path)
 
             try:
-                self.imgs_segmentations_paths.append(self.get_path(FileType.IMG_SEGMENTATION, i))
-            except FileNotFoundError as e:
-                raise InvalidSegmentationDirError(self.dir_path) from e
-
-            try:
-                sub_img_path = self.get_path(FileType.SUB_IMG, i)
-                sub_img_segmentation_path = self.get_path(FileType.SUB_IMG_SEGMENTATION, i)
+                sub_img_path = self.get_path(FileType.SUB_IMG, sub_imgs_index)
+                sub_img_segmentation_path = self.get_path(FileType.SUB_IMG_SEGMENTATION, sub_imgs_index)
             except FileNotFoundError as e:
                 self.sub_imgs_paths.append(None)
                 self.sub_imgs_segmentations_paths.append(None)
