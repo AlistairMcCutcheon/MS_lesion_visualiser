@@ -6,6 +6,8 @@ import slicer
 from slicer.ScriptedLoadableModule import *
 from slicer.util import VTKObservationMixin, getNode, getNodes
 from packages.utils.temp_dir import TempDir
+from packages.segmentation.segmentation import SegmentationDir
+from packages.segmentation.file_types import file_type_to_name, FileType
 from packages.testing.test_segmentation_dir import SegmentationDirectoryTest
 #
 # Main
@@ -152,8 +154,13 @@ class MainWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.ui.nextButton.connect("clicked(bool)", self.onNextButton)
         self.ui.btnCompare.connect("clicked(bool)", self.onCompareButton)
 
+        self.set_standard_view(standard_view=True)
+
         # Make sure parameter node is initialized (needed for module reload)
         self.initializeParameterNode()
+
+        self.loaded_segmentation = None
+        self.loaded_segmentation_index = None
 
     def cleanup(self):
         """
@@ -318,29 +325,71 @@ class MainWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         if not os.path.isdir(segmentation_dir_path):
             return
 
-        print("Setting visibility of all segmentations to 0...")
+        logging.info("Setting visibility of all segmentations to 0...")
         self.setSegmentationNodesToInvisible()
 
-        self.ui.pthLoadSegmentationDirectory.currentPath = "/home/alistair/Code/MS_Lesion/MS_Code/model/MS_Net/vnet_predictions/Public_Patient0"
-        segmentation_dir_path = Path(self.ui.pthLoadSegmentationDirectory.currentPath)
-
         print(f"Loading {segmentation_dir_path}")
-        slicer.util.loadVolume(str(segmentation_dir_path / "img_0.nii.gz"), properties={"name": f"{segmentation_dir_path / 'img_0.nii.gz'}", "labelmap": False, "singleFile": True, "show": True})
-        slicer.util.loadSegmentation(str(segmentation_dir_path / "img_0_segmentation.nii.gz"), properties={"name": f"{segmentation_dir_path / 'img_0_segmentation.nii.gz'}"})
-        self.ui.nextButton.setEnabled(True)
+        self.ui.pthLoadSegmentationDirectory.currentPath = "/home/alistair/Code/MS_lesion_visualiser/test_assets/vnet_predictions/Public_Patient0"
+        self.loaded_segmentation = SegmentationDir(self.ui.pthLoadSegmentationDirectory.currentPath)
+        self.load_segmentation_img_index(0)
+
+    def load_segmentation_img_index(self, index: int) -> None:
+        logging.info(f"Loading segmentation index {index}")
+        self.loaded_segmentation_index = index
+        slicer.util.loadVolume(
+            str(Path(self.loaded_segmentation.dir_path) / file_type_to_name(FileType.IMG, index)), 
+            properties={
+                "name": f"{Path(self.loaded_segmentation.dir_path) / file_type_to_name(FileType.IMG, index)}", 
+                "labelmap": False, 
+                "singleFile": True, 
+                "show": True})
+        slicer.util.loadSegmentation(
+            str(Path(self.loaded_segmentation.dir_path) / file_type_to_name(FileType.IMG_SEGMENTATION, index)), 
+            properties={"name": f"{Path(self.loaded_segmentation.dir_path) / file_type_to_name(FileType.IMG_SEGMENTATION, index)}"})
+        self.ui.nextButton.setEnabled(self.loaded_segmentation.index_is_valid_for_img(index + 1))
+        self.ui.prevButton.setEnabled(self.loaded_segmentation.index_is_valid_for_img(index - 1))
+        self.ui.btnCompare.setEnabled(self.loaded_segmentation.index_is_valid_for_sub_img(index - 1))
+        self.set_standard_view(standard_view=True)
+
+
+    def load_segmentation_sub_img_index(self, index: int) -> None:
+        logging.info(f"Loading sub segmentation index {index}")
+        self.loaded_segmentation_index = index + 1
+        slicer.util.loadVolume(
+            str(Path(self.loaded_segmentation.dir_path) / file_type_to_name(FileType.SUB_IMG, index)), 
+            properties={
+                "name": f"{Path(self.loaded_segmentation.dir_path) / file_type_to_name(FileType.SUB_IMG, index)}", 
+                "labelmap": False, 
+                "singleFile": True, 
+                "show": True})
+        slicer.util.loadSegmentation(
+            str(Path(self.loaded_segmentation.dir_path) / file_type_to_name(FileType.SUB_IMG_SEGMENTATION, index)), 
+            properties={"name": f"{Path(self.loaded_segmentation.dir_path) / file_type_to_name(FileType.SUB_IMG_SEGMENTATION, index)}"})
+        self.ui.nextButton.setEnabled(False)
         self.ui.prevButton.setEnabled(False)
-        self.ui.btnCompare.setEnabled(False)
+        self.ui.btnCompare.setEnabled(True)
+        self.set_standard_view(standard_view=False)
+
+    def set_standard_view(self, standard_view: bool):
+        if standard_view:
+            self.ui.btnCompare.text = "Compare with Previous Image"
+            self.standard_view = True
+            return
+
+        self.ui.btnCompare.text = "Return to Standard View"
+        self.standard_view = False
 
     def onPrevButton(self):
-        self.ui.prevButton.setEnabled(False)
-        self.ui.nextButton.setEnabled(True) 
+        self.load_segmentation_img_index(self.loaded_segmentation_index - 1)
 
     def onNextButton(self):
-        self.ui.prevButton.setEnabled(True)
-        self.ui.nextButton.setEnabled(False)
+        self.load_segmentation_img_index(self.loaded_segmentation_index + 1)
 
     def onCompareButton(self):
-        pass
+        if not self.standard_view:
+            self.load_segmentation_img_index(self.loaded_segmentation_index)
+            return
+        self.load_segmentation_sub_img_index(self.loaded_segmentation_index - 1)
 
 
 

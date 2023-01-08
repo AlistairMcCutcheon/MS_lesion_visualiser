@@ -36,22 +36,22 @@ class SegmentationDir:
     def load_paths(self):
         self.imgs_paths[0] = self.get_path(FileType.IMG, 0)
         self.imgs_segmentations_paths[0] = self.get_path(FileType.IMG_SEGMENTATION, 0)
-        for imgs_index, sub_imgs_index in zip(itertools.count(1), itertools.count(0)):
-            if self.index_has_no_imgs(imgs_index):
+        for img_index, sub_img_index in zip(itertools.count(1), itertools.count(0)):
+            if self.index_has_no_imgs(img_index):
                 break
 
             try:
-                img_path = self.get_path(FileType.IMG, imgs_index)
-                img_segmentation_path = self.get_path(FileType.IMG_SEGMENTATION, imgs_index)
+                img_path = self.get_path(FileType.IMG, img_index)
+                img_segmentation_path = self.get_path(FileType.IMG_SEGMENTATION, img_index)
             except FileNotFoundError as e:
                 raise InvalidSegmentationDirError(self.dir_path) from e
             else:
-                self.imgs_paths[imgs_index] = img_path
-                self.imgs_segmentations_paths[imgs_index] = img_segmentation_path
+                self.imgs_paths[img_index] = img_path
+                self.imgs_segmentations_paths[img_index] = img_segmentation_path
 
             try:
-                self.sub_imgs_paths[sub_imgs_index] = self.get_path(FileType.SUB_IMG, sub_imgs_index)
-                self.sub_imgs_segmentations_paths[sub_imgs_index] = self.get_path(FileType.SUB_IMG_SEGMENTATION, sub_imgs_index)
+                self.sub_imgs_paths[sub_img_index] = self.get_path(FileType.SUB_IMG, sub_img_index)
+                self.sub_imgs_segmentations_paths[sub_img_index] = self.get_path(FileType.SUB_IMG_SEGMENTATION, sub_img_index)
             except FileNotFoundError as e:
                 logging.warning(e)
 
@@ -59,6 +59,12 @@ class SegmentationDir:
         img_path = Path(self.dir_path) / file_type_to_name(FileType.IMG, index)
         img_segmentation_path = Path(self.dir_path) / file_type_to_name(FileType.IMG_SEGMENTATION, index)
         return not img_path.exists() and not img_segmentation_path.exists()
+
+    def index_is_valid_for_img(self, index):
+        return index in self.imgs_paths and index in self.imgs_segmentations_paths
+
+    def index_is_valid_for_sub_img(self, index):
+        return index in self.sub_imgs_paths and index in self.sub_imgs_segmentations_paths
 
     def get_path(self, file_type: FileType, index) -> str:
         path = Path(self.dir_path) / file_type_to_name(file_type, index)
