@@ -45,52 +45,71 @@ class SegmentationDirectoryTest:
     def test_combinations_of_files(self):
         @dataclass
         class FileCombination:
-            num_imgs: int
-            num_imgs_segmentations: int
-            num_sub_imgs: int
-            num_sub_imgs_segmentations: int
-            def __str__(self):
-                return f"{self.num_imgs}_{self.num_imgs_segmentations}_{self.num_sub_imgs}_{self.num_sub_imgs_segmentations}"
+            img_indices: tuple[int]
+            imgs_segmentations_indices: tuple[int]
+            sub_imgs_indices: tuple[int]
+            sub_imgs_segmentations_indices: tuple[int]
+            def __hash__(self) -> int:
+                return hash((self.img_indices, self.imgs_segmentations_indices, self.sub_imgs_indices, self.sub_imgs_segmentations_indices))
 
-        def test_combination(combination: FileCombination):
-            with TempDir(Path(self.test_dir_path) / str(combination)) as temp_dir_path:
-                imgs_paths = [
-                    Path(temp_dir_path) / 
-                    file_type_to_name(FileType.IMG, i) for i in range(combination.num_imgs)
-                ]
-                imgs_segmentations_paths = [
-                    Path(temp_dir_path) / 
-                    file_type_to_name(FileType.IMG_SEGMENTATION, i) for i in range(combination.num_imgs_segmentations)
-                ]
-                sub_imgs_paths = [
-                    Path(temp_dir_path) / 
-                    file_type_to_name(FileType.SUB_IMG, i) for i in range(combination.num_sub_imgs)
-                ]
-                sub_imgs_segmentations_paths = [
-                    Path(temp_dir_path) / 
-                    file_type_to_name(FileType.SUB_IMG_SEGMENTATION, i) for i in range(combination.num_sub_imgs_segmentations)
-                ]
-                [open(img_path, "w").close() for img_path in imgs_paths]
-                [open(img_segmentation_path, "w").close() for img_segmentation_path in imgs_segmentations_paths]
-                [open(sub_img_path, "w").close() for sub_img_path in sub_imgs_paths]
-                [open(sub_img_segmentation_path, "w").close() for sub_img_segmentation_path in sub_imgs_segmentations_paths]
+        def test_combination(combination: FileCombination, exception : Exception = None) -> None:
+            with TempDir(Path(self.test_dir_path) / str(hash(combination))) as temp_dir_path:
+                imgs_paths = {
+                    i: Path(temp_dir_path) / 
+                    file_type_to_name(FileType.IMG, i) 
+                    for i in combination.img_indices
+                }
+                imgs_segmentations_paths = {
+                    i: Path(temp_dir_path) / 
+                    file_type_to_name(FileType.IMG_SEGMENTATION, i) 
+                    for i in combination.imgs_segmentations_indices
+                }
+                sub_imgs_paths = {
+                    i: Path(temp_dir_path) / 
+                    file_type_to_name(FileType.SUB_IMG, i) 
+                    for i in combination.sub_imgs_indices
+                }
+                sub_imgs_segmentations_paths = {
+                    i: Path(temp_dir_path) / 
+                    file_type_to_name(FileType.SUB_IMG_SEGMENTATION, i) 
+                    for i in combination.sub_imgs_segmentations_indices
+                }
+                [open(img_path, "w").close() for img_path in imgs_paths.values()]
+                [open(img_segmentation_path, "w").close() for img_segmentation_path in imgs_segmentations_paths.values()]
+                [open(sub_img_path, "w").close() for sub_img_path in sub_imgs_paths.values()]
+                [open(sub_img_segmentation_path, "w").close() for sub_img_segmentation_path in sub_imgs_segmentations_paths.values()]
 
-                segmentation_dir = SegmentationDir(temp_dir_path)
+                if exception is None:
+                    segmentation_dir = SegmentationDir(temp_dir_path)
+                else:
+                    try:
+                        SegmentationDir(temp_dir_path)
+                    except exception:
+                        return
+                    raise TestFailedError
 
-            assert [str(x) for x in segmentation_dir.imgs_paths] == [str(x) for x in imgs_paths]
-            assert [str(x) for x in segmentation_dir.imgs_segmentations_paths] == [str(x) for x in imgs_segmentations_paths]
-            print([str(x) for x in segmentation_dir.sub_imgs_paths])
-            print([str(x) for x in sub_imgs_paths])
-            assert [str(x) for x in segmentation_dir.sub_imgs_paths] == [str(x) for x in sub_imgs_paths]
-            assert [str(x) for x in segmentation_dir.sub_imgs_segmentations_paths] == [str(x) for x in sub_imgs_segmentations_paths]
-
+            assert {x: str(y) for x, y in segmentation_dir.imgs_paths.items()} == {x: str(y) for x, y in imgs_paths.items()}
+            assert {x: str(y) for x, y in segmentation_dir.imgs_segmentations_paths.items()} == {x: str(y) for x, y in imgs_segmentations_paths.items()}
+            assert {x: str(y) for x, y in segmentation_dir.sub_imgs_paths.items()} == {x: str(y) for x, y in sub_imgs_paths.items()}
+            assert {x: str(y) for x, y in segmentation_dir.sub_imgs_segmentations_paths.items()} == {x: str(y) for x, y in sub_imgs_segmentations_paths.items()}
 
         file_combinations = [
-            FileCombination(1, 1, 0, 0),
-            FileCombination(2, 2, 0, 0),
+            FileCombination((0,), (0,), (), ()),
+            FileCombination((0,1), (0, 1), (), ()),
         ]
-        [test_combination(file_combination) for file_combination in file_combinations]
-        pass
+        exceptions = [
+            None,
+            None,
+        ]
+        for file_combination, exception in zip(file_combinations, exceptions):
+            if exception is None:
+                test_combination(file_combination)
+                return
+            try:
+                test_combination(file_combination)
+            except exception:
+                return
+            raise TestFailedError
 
     # def test_1_img_1_segmentation(self):
     #     with TempDir(Path(self.test_dir_path) / "test_1_img_1_segmentation") as temp_dir_path:
