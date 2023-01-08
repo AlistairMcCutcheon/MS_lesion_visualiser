@@ -423,14 +423,16 @@ class MainTest(ScriptedLoadableModuleTest):
         """ Do whatever is needed to reset the state - typically a scene clear will be enough.
         """
         slicer.mrmlScene.Clear()
-        with TempDir(Path(__file__).parent.parent / "temp_test_assets") as temp_dir_path:
-            SegmentationDirectoryTest(temp_dir_path).runTest()
 
     def runTest(self):
         """Run as few or as many tests as needed here.
         """
+        logging.disable(logging.CRITICAL)
         self.setUp()
+        with TempDir(Path(__file__).parent.parent / "temp_test_assets") as temp_dir_path:
+            SegmentationDirectoryTest(temp_dir_path).runTest()
         self.test_Main1()
+        logging.disable(logging.NOTSET)
 
     def test_Main1(self):
         """ Ideally you should have several levels of tests.  At the lowest level
