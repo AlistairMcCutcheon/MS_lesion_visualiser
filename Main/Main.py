@@ -5,10 +5,11 @@ import vtk
 import slicer
 from slicer.ScriptedLoadableModule import *
 from slicer.util import VTKObservationMixin, getNode, getNodes
-from packages.utils.temp_dir import TempDir
+from packages.utils.context_managers import TempDir, SetParameters, BlockMethod
 from packages.segmentation.segmentation import SegmentationDir
 from packages.segmentation.file_types import file_type_to_name, FileType
 from packages.testing.test_segmentation_dir import SegmentationDirectoryTest
+from slicer.util import MRMLNodeNotFoundException
 #
 # Main
 #
@@ -103,7 +104,6 @@ class MainWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         VTKObservationMixin.__init__(self)  # needed for parameter node observation
         self.logic = None
         self._parameterNode = None
-        self._updatingGUIFromParameterNode = False
 
     def setup(self):
         """
@@ -180,7 +180,7 @@ class MainWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         """
         Called each time the user opens a different module.
         """
-        # Do not react to parameter node changes (GUI wlil be updated when the user enters into the module)
+        # Do not react to parameter node changes (GUI will be updated when the user enters into the module)
         self.removeObserver(self._parameterNode, vtk.vtkCommand.ModifiedEvent, self.updateGUIFromParameterNode)
 
     def onSceneStartClose(self, caller, event):
@@ -240,29 +240,25 @@ class MainWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         The module GUI is updated to show the current state of the parameter node.
         """
 
-        if self._parameterNode is None or self._updatingGUIFromParameterNode:
+        if self._parameterNode is None:
             return
 
         # Make sure GUI changes do not call updateParameterNodeFromGUI (it could cause infinite loop)
-        self._updatingGUIFromParameterNode = True
+        # with BlockMethod(self, "updateParameterNodeFromGUI"):
+        #     Update node selectors and sliders
+        #     self.ui.inputSelector.setCurrentNode(self._parameterNode.GetNodeReference("InputVolume"))
+        #     self.ui.outputSelector.setCurrentNode(self._parameterNode.GetNodeReference("OutputVolume"))
+        #     self.ui.invertedOutputSelector.setCurrentNode(self._parameterNode.GetNodeReference("OutputVolumeInverse"))
+        #     self.ui.imageThresholdSliderWidget.value = float(self._parameterNode.GetParameter("Threshold"))
+        #     self.ui.invertOutputCheckBox.checked = (self._parameterNode.GetParameter("Invert") == "true")
 
-        # Update node selectors and sliders
-        # self.ui.inputSelector.setCurrentNode(self._parameterNode.GetNodeReference("InputVolume"))
-        # self.ui.outputSelector.setCurrentNode(self._parameterNode.GetNodeReference("OutputVolume"))
-        # self.ui.invertedOutputSelector.setCurrentNode(self._parameterNode.GetNodeReference("OutputVolumeInverse"))
-        # self.ui.imageThresholdSliderWidget.value = float(self._parameterNode.GetParameter("Threshold"))
-        # self.ui.invertOutputCheckBox.checked = (self._parameterNode.GetParameter("Invert") == "true")
-
-        # Update buttons states and tooltips
-        # if self._parameterNode.GetNodeReference("InputVolume") and self._parameterNode.GetNodeReference("OutputVolume"):
-        #     self.ui.applyButton.toolTip = "Compute output volume"
-        #     self.ui.applyButton.enabled = True
-        # else:
-        #     self.ui.applyButton.toolTip = "Select input and output volume nodes"
-        #     self.ui.applyButton.enabled = False
-
-        # All the GUI updates are done
-        self._updatingGUIFromParameterNode = False
+        #     Update buttons states and tooltips
+        #     if self._parameterNode.GetNodeReference("InputVolume") and self._parameterNode.GetNodeReference("OutputVolume"):
+        #         self.ui.applyButton.toolTip = "Compute output volume"
+        #         self.ui.applyButton.enabled = True
+        #     else:
+        #         self.ui.applyButton.toolTip = "Select input and output volume nodes"
+        #         self.ui.applyButton.enabled = False
 
     def updateParameterNodeFromGUI(self, caller=None, event=None):
         """
@@ -270,18 +266,15 @@ class MainWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         The changes are saved into the parameter node (so that they are restored when the scene is saved and loaded).
         """
 
-        if self._parameterNode is None or self._updatingGUIFromParameterNode:
+        if self._parameterNode is None:
             return
 
-        # wasModified = self._parameterNode.StartModify()  # Modify all properties in a single batch
-
-        # self._parameterNode.SetNodeReferenceID("InputVolume", self.ui.inputSelector.currentNodeID)
-        # self._parameterNode.SetNodeReferenceID("OutputVolume", self.ui.outputSelector.currentNodeID)
-        # self._parameterNode.SetParameter("Threshold", str(self.ui.imageThresholdSliderWidget.value))
-        # self._parameterNode.SetParameter("Invert", "true" if self.ui.invertOutputCheckBox.checked else "false")
-        # self._parameterNode.SetNodeReferenceID("OutputVolumeInverse", self.ui.invertedOutputSelector.currentNodeID)
-
-        # self._parameterNode.EndModify(wasModified)
+        # with SetParameters(self._parameterNode) as parameter_node:
+        #     parameter_node.SetNodeReferenceID("InputVolume", self.ui.inputSelector.currentNodeID)
+        #     parameter_node.SetNodeReferenceID("OutputVolume", self.ui.outputSelector.currentNodeID)
+        #     parameter_node.SetParameter("Threshold", str(self.ui.imageThresholdSliderWidget.value))
+        #     parameter_node.SetParameter("Invert", "true" if self.ui.invertOutputCheckBox.checked else "false")
+        #     parameter_node.SetNodeReferenceID("OutputVolumeInverse", self.ui.invertedOutputSelector.currentNodeID)
 
     def updateBtnLoadDirectory(self):
         segmentation_dir_path = self.ui.pthLoadSegmentationDirectory.currentPath
@@ -303,6 +296,58 @@ class MainWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         for i in range(slicer.mrmlScene.GetNumberOfNodesByClass('vtkMRMLSegmentationNode')):
             slicer.mrmlScene.GetNthNodeByClass(i, 'vtkMRMLSegmentationNode').SetDisplayVisibility(0)
 
+    # def unloadSegmentationDirectory(self):
+    #     if self.loaded_segmentation is None:
+    #         return
+
+    #     dir_path = Path(self.loaded_segmentation.dir_path)
+    #     for i in self.loaded_segmentation.imgs_paths.values():
+    #         try:
+    #             node = slicer.util.getNode(str(dir_path / file_type_to_name(FileType.IMG, i)))
+    #         except MRMLNodeNotFoundException:
+    #             continue
+    #         slicer.util.removeNode(node)
+    #     for i in self.loaded_segmentation.imgs_segmentations_paths.values():
+    #         try:
+    #             node = slicer.util.getNode(str(dir_path / file_type_to_name(FileType.IMG_SEGMENTATION, i)))
+    #         except MRMLNodeNotFoundException:
+    #             continue
+    #         slicer.util.removeNode(node)
+    #     for i in self.loaded_segmentation.sub_imgs_paths.values():
+    #         try:
+    #             node = slicer.util.getNode(str(dir_path / file_type_to_name(FileType.SUB_IMG, i)))
+    #         except MRMLNodeNotFoundException:
+    #             continue
+    #         slicer.util.removeNode(node)
+    #     for i in self.loaded_segmentation.sub_imgs_segmentations_paths.values():
+    #         try:
+    #             node = slicer.util.getNode(str(dir_path / file_type_to_name(FileType.SUB_IMG_SEGMENTATION, i)))
+    #         except MRMLNodeNotFoundException:
+    #             continue
+    #         slicer.util.removeNode(node)
+
+    def removeLoadedImgAndSegmentationNodes(self):
+        index = self.loaded_segmentation_index
+        if index is None:
+            return
+        dir_path = self.loaded_segmentation.dir_path
+
+        if not self.standard_view:
+            slicer.mrmlScene.RemoveNode(
+                slicer.util.getNode(f"{(dir_path / file_type_to_name(FileType.SUB_IMG, index - 1))}*")
+            )
+            slicer.mrmlScene.RemoveNode(
+                slicer.util.getNode(f"{(dir_path / file_type_to_name(FileType.SUB_IMG_SEGMENTATION, index - 1))}")
+            )
+            return
+        slicer.mrmlScene.RemoveNode(
+                slicer.util.getNode(f"{(dir_path / file_type_to_name(FileType.IMG, index))}*")
+            )
+        
+        slicer.mrmlScene.RemoveNode(
+            slicer.util.getNode(f"{(dir_path / file_type_to_name(FileType.IMG_SEGMENTATION, index))}")
+        )
+
     def onLoadSegmentationDirectory(self):
         self.updateBtnLoadDirectory()
 
@@ -310,17 +355,23 @@ class MainWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         if not os.path.isdir(segmentation_dir_path):
             return
 
+        self.removeLoadedImgAndSegmentationNodes()
+
         logging.info("Setting visibility of all segmentations to 0...")
         self.setSegmentationNodesToInvisible()
 
-        print(f"Loading {segmentation_dir_path}")
         self.ui.pthLoadSegmentationDirectory.currentPath = "/home/alistair/Code/MS_lesion_visualiser/test_assets/vnet_predictions/Public_Patient0"
         self.loaded_segmentation = SegmentationDir(self.ui.pthLoadSegmentationDirectory.currentPath)
+        with SetParameters(self._parameterNode) as parameter_node:
+            parameter_node.SetParameter("segmentation_dir_path", self.ui.pthLoadSegmentationDirectory.currentPath)
+            parameter_node.SetParameter("segmentation_img_index", "0")
         self.load_segmentation_img_index(0)
 
     def load_segmentation_img_index(self, index: int) -> None:
         logging.info(f"Loading segmentation index {index}")
-        self.loaded_segmentation_index = index
+
+        self.removeLoadedImgAndSegmentationNodes()
+            
         slicer.util.loadVolume(
             str(Path(self.loaded_segmentation.dir_path) / file_type_to_name(FileType.IMG, index)), 
             properties={
@@ -328,9 +379,12 @@ class MainWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
                 "labelmap": False, 
                 "singleFile": True, 
                 "show": True})
+
         slicer.util.loadSegmentation(
             str(Path(self.loaded_segmentation.dir_path) / file_type_to_name(FileType.IMG_SEGMENTATION, index)), 
             properties={"name": f"{Path(self.loaded_segmentation.dir_path) / file_type_to_name(FileType.IMG_SEGMENTATION, index)}"})
+
+        self.loaded_segmentation_index = index
         self.ui.nextButton.setEnabled(self.loaded_segmentation.index_is_valid_for_img(index + 1))
         self.ui.prevButton.setEnabled(self.loaded_segmentation.index_is_valid_for_img(index - 1))
         self.ui.btnCompare.setEnabled(self.loaded_segmentation.index_is_valid_for_sub_img(index - 1))
@@ -339,7 +393,8 @@ class MainWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
     def load_segmentation_sub_img_index(self, index: int) -> None:
         logging.info(f"Loading sub segmentation index {index}")
-        self.loaded_segmentation_index = index + 1
+        self.removeLoadedImgAndSegmentationNodes()
+        # self.loaded_segmentation_index = index + 1
         slicer.util.loadVolume(
             str(Path(self.loaded_segmentation.dir_path) / file_type_to_name(FileType.SUB_IMG, index)), 
             properties={
@@ -365,12 +420,19 @@ class MainWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.standard_view = False
 
     def onPrevButton(self):
+        segmentation_img_index = int(self._parameterNode.GetParameter("segmentation_img_index"))
+        self._parameterNode.SetParameter("segmentation_img_index", str(segmentation_img_index - 1))
         self.load_segmentation_img_index(self.loaded_segmentation_index - 1)
 
     def onNextButton(self):
+        segmentation_img_index = int(self._parameterNode.GetParameter("segmentation_img_index"))
+        self._parameterNode.SetParameter("segmentation_img_index", str(segmentation_img_index + 1))
         self.load_segmentation_img_index(self.loaded_segmentation_index + 1)
 
     def onCompareButton(self):
+        old_standard_view = self._parameterNode.GetParameter("standard_view")
+        new_standard_view = "true" if old_standard_view == "false" else "false"
+        self._parameterNode.SetParameter("standard_view", new_standard_view)
         if not self.standard_view:
             self.load_segmentation_img_index(self.loaded_segmentation_index)
             return
@@ -404,11 +466,9 @@ class MainLogic(ScriptedLoadableModuleLogic):
         """
         Initialize parameter node with default settings.
         """
-        pass
-        # if not parameterNode.GetParameter("Threshold"):
-        #     parameterNode.SetParameter("Threshold", "100.0")
-        # if not parameterNode.GetParameter("Invert"):
-        #     parameterNode.SetParameter("Invert", "false")
+        parameterNode.SetParameter("standard_view", "true")
+        parameterNode.SetParameter("segmentation_dir_path", "none")
+        parameterNode.SetParameter("segmentation_img_index", "0")
 
     # def process(self, inputVolume, outputVolume, imageThreshold, invert=False, showResult=True):
     #     """

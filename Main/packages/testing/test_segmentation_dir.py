@@ -3,7 +3,7 @@ from packages.segmentation.segmentation import SegmentationDir, InvalidSegmentat
 from packages.segmentation.file_types import FileType, file_type_to_name
 from pathlib import Path
 from packages.testing.utils import *
-from packages.utils.temp_dir import TempDir
+from packages.utils.context_managers import TempDir
 import logging
 from dataclasses import dataclass
 
