@@ -151,12 +151,13 @@ class MainWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         # self.ui.invertedOutputSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.updateParameterNodeFromGUI)
 
         # Buttons
-        # self.ui.applyButton.connect('clicked(bool)', self.onApplyButton)
         self.ui.pthLoadSegmentationDirectory.connect('currentPathChanged(QString)', self.onSegmentationDirectoryModified)
         self.ui.btnLoadDirectory.connect("clicked(bool)", self.onLoadSegmentationDirectory)
         self.ui.prevButton.connect("clicked(bool)", self.onPrevButton)
         self.ui.nextButton.connect("clicked(bool)", self.onNextButton)
         self.ui.btnCompare.connect("clicked(bool)", self.onCompareButton)
+        self.ui.btnSaveCurrentSegmentation.connect("clicked(bool)", self.onBtnSaveCurrentSegmentation)
+        self.ui.btnSaveAllSegmentations.connect("clicked(bool)", self.onBtnSaveAllSegmentations)
 
         self.set_standard_view(standard_view=True)
 
@@ -191,6 +192,7 @@ class MainWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         Called just before the scene is closed.
         """
         # Parameter node will be reset, do not use it anymore
+        print("hi!")
         self.setParameterNode(None)
 
     def onSceneEndClose(self, caller, event):
@@ -198,6 +200,7 @@ class MainWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         Called just after the scene is closed.
         """
         # If this module is shown while the scene is closed then recreate a new parameter node immediately
+        print("omg")
         if self.parent.isEntered:
             self.initializeParameterNode()
 
@@ -337,31 +340,6 @@ class MainWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         slicer.mrmlScene.RemoveNode(label_map_volume_node.GetDisplayNode().GetColorNode())
         slicer.mrmlScene.RemoveNode(label_map_volume_node)
 
-    # def removeLoadedImgAndSegmentationNodes(self):
-    #     def remove_img_and_segmentation_nodes(img_node_name: str, segmentation_node_name: str):
-    #         volume_node = slicer.util.getNode(f"{img_node_name}*")
-    #         segmentation_node = slicer.util.getNode(segmentation_node_name)
-    #         self.save_segmentation(segmentation_node, segmentation_node_name, volume_node)
-    #         slicer.mrmlScene.RemoveNode(volume_node)
-    #         slicer.mrmlScene.RemoveNode(segmentation_node)
-
-    #     index = self.loaded_segmentation_index
-    #     if index is None:
-    #         return
-    #     dir_path = self.loaded_segmentation.dir_path
-
-    #     if not self.standard_view:
-    #         remove_img_and_segmentation_nodes(
-    #             dir_path / file_type_to_name(FileType.SUB_IMG, index - 1),
-    #             dir_path / file_type_to_name(FileType.SUB_IMG_SEGMENTATION, index - 1)
-    #         )
-    #         return
-
-    #     remove_img_and_segmentation_nodes(
-    #         str(dir_path / file_type_to_name(FileType.IMG, index)),
-    #         str(dir_path / file_type_to_name(FileType.IMG_SEGMENTATION, index))
-    #     )
-
     def onLoadSegmentationDirectory(self):
         self.updateBtnLoadDirectory()
 
@@ -425,8 +403,6 @@ class MainWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.loaded_segmentation_index = index
         self.ui.nextButton.setEnabled(self.loaded_segmentation.index_is_valid_for_img(index + 1))
         self.ui.prevButton.setEnabled(self.loaded_segmentation.index_is_valid_for_img(index - 1))
-        print("checking")
-        print(self.loaded_segmentation.index_is_valid_for_sub_img(index - 1))
         self.ui.btnCompare.setEnabled(self.loaded_segmentation.index_is_valid_for_sub_img(index - 1))
         self.set_standard_view(standard_view=True)
 
@@ -468,14 +444,32 @@ class MainWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.load_segmentation_img_index(self.loaded_segmentation_index + 1)
 
     def onCompareButton(self):
-        print("compared")
         if not self.standard_view:
             self.load_segmentation_img_index(self.loaded_segmentation_index)
             return
         self.load_segmentation_sub_img_index(self.loaded_segmentation_index - 1)
 
+    def onBtnSaveCurrentSegmentation(self):
+        index = self.loaded_segmentation_index
+        dir_path = self.loaded_segmentation.dir_path
+        if self.standard_view:
+            volume_node_file_path = str(dir_path / file_type_to_name(FileType.IMG, index))
+            segmentation_file_path = str(dir_path / file_type_to_name(FileType.IMG_SEGMENTATION, index))
+        else:
+            volume_node_file_path = str(dir_path / file_type_to_name(FileType.SUB_IMG, index - 1))
+            segmentation_file_path = str(dir_path / file_type_to_name(FileType.SUB_IMG_SEGMENTATION, index - 1))
 
+        volume_node = slicer.util.getNode(f"{volume_node_file_path}*")
+        segmentation_node = slicer.util.getNode(segmentation_file_path)
 
+        self.save_segmentation(
+            segmentation_node=segmentation_node,
+            save_file_path=segmentation_file_path,
+            volume_node=volume_node
+        )
+
+    def onBtnSaveAllSegmentations(self):
+        pass
 
 
 #
