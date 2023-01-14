@@ -10,6 +10,8 @@ from packages.segmentation.segmentation import SegmentationDir
 from packages.segmentation.file_types import file_type_to_name, FileType
 from packages.testing.test_segmentation_dir import SegmentationDirectoryTest
 from slicer.util import MRMLNodeNotFoundException
+import nibabel as nib
+import numpy as np
 #
 # Main
 #
@@ -21,6 +23,10 @@ class Main(ScriptedLoadableModule):
 
     def __init__(self, parent):
         ScriptedLoadableModule.__init__(self, parent)
+
+        print(slicer.modules)
+        for x, y in slicer.modules.__dict__.items():
+            print(x,y)
         self.parent.title = "Main"  # TODO: make this more human readable by adding spaces
         self.parent.categories = ["Segmentation"]  # category (folders where the module shows up in the module selector)
         self.parent.dependencies = []  # TODO: add here list of module names that this module requires
@@ -327,26 +333,74 @@ class MainWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
     #         slicer.util.removeNode(node)
 
     def removeLoadedImgAndSegmentationNodes(self):
+        def remove_img_and_segmentation_nodes(img_node_name, segmentation_node_name):
+            volume_node = slicer.util.getNode(f"{img_node_name}*")
+            segmentation_node = slicer.util.getNode(str(segmentation_node_name))
+            arr = slicer.util.arrayFromSegmentBinaryLabelmap(
+                segmentation_node, 
+                segmentation_node.GetSegmentation().GetSegmentIDs()[0], 
+                volume_node
+            )
+            print(arr.shape)
+            arr = np.flip(arr, 0)
+            # arr = np.transpose(arr, (1, 0, 2))
+            # print(arr.shape)
+            nib.save(nib.Nifti1Image(arr.astype(np.float32), np.eye(4)), segmentation_node_name)
+            # import numpy as np
+            # print(arr)
+            # print(np.amax(arr))
+            # print(type(arr))
+            # print(arr.dtype)
+            slicer.mrmlScene.RemoveNode(volume_node)
+    
+            slicer.mrmlScene.RemoveNode(segmentation_node)
+
         index = self.loaded_segmentation_index
         if index is None:
             return
         dir_path = self.loaded_segmentation.dir_path
+        # volumeNode = slicer.mrmlScene.GetFirstNodeByClass("vtkMRMLScalarVolumeNode")
+        # print(volumeNode)
 
         if not self.standard_view:
-            slicer.mrmlScene.RemoveNode(
-                slicer.util.getNode(f"{(dir_path / file_type_to_name(FileType.SUB_IMG, index - 1))}*")
+            remove_img_and_segmentation_nodes(
+                dir_path / file_type_to_name(FileType.SUB_IMG, index - 1),
+                dir_path / file_type_to_name(FileType.SUB_IMG_SEGMENTATION, index - 1)
             )
-            slicer.mrmlScene.RemoveNode(
-                slicer.util.getNode(f"{(dir_path / file_type_to_name(FileType.SUB_IMG_SEGMENTATION, index - 1))}")
-            )
+            # slicer.mrmlScene.RemoveNode(
+            #     slicer.util.getNode(f"{()}*")
+            # )
+            # sub_segmentation_node_name = 
+            # sub_segmentation_node = slicer.util.getNode(f"{(dir_path / sub_segmentation_node_name)}")
+            
+            # segment = sub_segmentation_node.GetSegment[sub_segmentation_node.GetSegmentIDs()[0]]
+            # print(slicer.util.arrayFromSegment(segment))
+            # slicer.util.saveNode(sub_segmentation_node, sub_segmentation_node_name[:-3], properties={"fileType": ".nii.gz"})
+            # slicer.mrmlScene.RemoveNode(sub_segmentation_node)
+            # return
             return
-        slicer.mrmlScene.RemoveNode(
-                slicer.util.getNode(f"{(dir_path / file_type_to_name(FileType.IMG, index))}*")
-            )
-        
-        slicer.mrmlScene.RemoveNode(
-            slicer.util.getNode(f"{(dir_path / file_type_to_name(FileType.IMG_SEGMENTATION, index))}")
+
+        remove_img_and_segmentation_nodes(
+            dir_path / file_type_to_name(FileType.IMG, index),
+            dir_path / file_type_to_name(FileType.IMG_SEGMENTATION, index)
         )
+
+        # volume_node = slicer.util.getNode(f"{(dir_path / file_type_to_name(FileType.IMG, index))}*")
+        # segmentation_node_name = file_type_to_name(FileType.IMG_SEGMENTATION, index)
+        # segmentation_node = slicer.util.getNode(f"{(dir_path / segmentation_node_name)}")
+        # arr = slicer.util.arrayFromSegmentBinaryLabelmap(segmentation_node, segmentation_node.GetSegmentation().GetSegmentIDs()[0], volume_node)
+        # import numpy as np
+        # print(arr)
+        # print(np.amax(arr))
+        # print(type(arr))
+        # print(arr.dtype)
+        # slicer.mrmlScene.RemoveNode(volume_node)
+        
+
+        # # segmentation = segmentation_node.GetSegmentation()
+        # # segment = segmentation.GetSegment(segmentation.GetSegmentIDs()[0])
+        # slicer.util.saveNode(segmentation_node, segmentation_node_name[:-3], properties={"fileType": ".nii.gz"})
+        # slicer.mrmlScene.RemoveNode(segmentation_node)
 
     def onLoadSegmentationDirectory(self):
         self.updateBtnLoadDirectory()
