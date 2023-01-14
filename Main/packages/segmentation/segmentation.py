@@ -64,6 +64,8 @@ class SegmentationDir:
         return index in self.imgs_paths and index in self.imgs_segmentations_paths
 
     def index_is_valid_for_sub_img(self, index):
+        print(self.sub_imgs_paths)
+        print(self.sub_imgs_segmentations_paths)
         return index in self.sub_imgs_paths and index in self.sub_imgs_segmentations_paths
 
     def get_path(self, file_type: FileType, index) -> str:

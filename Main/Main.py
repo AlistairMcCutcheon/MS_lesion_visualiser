@@ -299,71 +299,68 @@ class MainWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         for i in range(slicer.mrmlScene.GetNumberOfNodesByClass('vtkMRMLSegmentationNode')):
             slicer.mrmlScene.GetNthNodeByClass(i, 'vtkMRMLSegmentationNode').SetDisplayVisibility(0)
 
-    # def unloadSegmentationDirectory(self):
-    #     if self.loaded_segmentation is None:
+    def unloadSegmentationDirectory(self):
+        if self.loaded_segmentation is None:
+            return
+
+        dir_path = Path(self.loaded_segmentation.dir_path)
+        for i in self.loaded_segmentation.imgs_paths.values():
+            try:
+                node = slicer.util.getNode(f"{dir_path / file_type_to_name(FileType.IMG, i)}*")
+            except MRMLNodeNotFoundException:
+                continue
+            slicer.mrmlScene.RemoveNode(node)
+        for i in self.loaded_segmentation.imgs_segmentations_paths.values():
+            try:
+                node = slicer.util.getNode(str(dir_path / file_type_to_name(FileType.IMG_SEGMENTATION, i)))
+            except MRMLNodeNotFoundException:
+                continue
+            slicer.mrmlScene.RemoveNode(node)
+        for i in self.loaded_segmentation.sub_imgs_paths.values():
+            try:
+                node = slicer.util.getNode(f"{dir_path / file_type_to_name(FileType.SUB_IMG, i)}*")
+            except MRMLNodeNotFoundException:
+                continue
+            slicer.mrmlScene.RemoveNode(node)
+        for i in self.loaded_segmentation.sub_imgs_segmentations_paths.values():
+            try:
+                node = slicer.util.getNode(str(dir_path / file_type_to_name(FileType.SUB_IMG_SEGMENTATION, i)))
+            except MRMLNodeNotFoundException:
+                continue
+            slicer.mrmlScene.RemoveNode(node)
+
+
+    def save_segmentation(self, segmentation_node, save_file_path, volume_node):
+        label_map_volume_node = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLLabelMapVolumeNode")
+        slicer.modules.segmentations.logic().ExportVisibleSegmentsToLabelmapNode(segmentation_node, label_map_volume_node, volume_node)
+        slicer.util.saveNode(label_map_volume_node, filename=save_file_path)
+        slicer.mrmlScene.RemoveNode(label_map_volume_node.GetDisplayNode().GetColorNode())
+        slicer.mrmlScene.RemoveNode(label_map_volume_node)
+
+    # def removeLoadedImgAndSegmentationNodes(self):
+    #     def remove_img_and_segmentation_nodes(img_node_name: str, segmentation_node_name: str):
+    #         volume_node = slicer.util.getNode(f"{img_node_name}*")
+    #         segmentation_node = slicer.util.getNode(segmentation_node_name)
+    #         self.save_segmentation(segmentation_node, segmentation_node_name, volume_node)
+    #         slicer.mrmlScene.RemoveNode(volume_node)
+    #         slicer.mrmlScene.RemoveNode(segmentation_node)
+
+    #     index = self.loaded_segmentation_index
+    #     if index is None:
+    #         return
+    #     dir_path = self.loaded_segmentation.dir_path
+
+    #     if not self.standard_view:
+    #         remove_img_and_segmentation_nodes(
+    #             dir_path / file_type_to_name(FileType.SUB_IMG, index - 1),
+    #             dir_path / file_type_to_name(FileType.SUB_IMG_SEGMENTATION, index - 1)
+    #         )
     #         return
 
-    #     dir_path = Path(self.loaded_segmentation.dir_path)
-    #     for i in self.loaded_segmentation.imgs_paths.values():
-    #         try:
-    #             node = slicer.util.getNode(str(dir_path / file_type_to_name(FileType.IMG, i)))
-    #         except MRMLNodeNotFoundException:
-    #             continue
-    #         slicer.util.removeNode(node)
-    #     for i in self.loaded_segmentation.imgs_segmentations_paths.values():
-    #         try:
-    #             node = slicer.util.getNode(str(dir_path / file_type_to_name(FileType.IMG_SEGMENTATION, i)))
-    #         except MRMLNodeNotFoundException:
-    #             continue
-    #         slicer.util.removeNode(node)
-    #     for i in self.loaded_segmentation.sub_imgs_paths.values():
-    #         try:
-    #             node = slicer.util.getNode(str(dir_path / file_type_to_name(FileType.SUB_IMG, i)))
-    #         except MRMLNodeNotFoundException:
-    #             continue
-    #         slicer.util.removeNode(node)
-    #     for i in self.loaded_segmentation.sub_imgs_segmentations_paths.values():
-    #         try:
-    #             node = slicer.util.getNode(str(dir_path / file_type_to_name(FileType.SUB_IMG_SEGMENTATION, i)))
-    #         except MRMLNodeNotFoundException:
-    #             continue
-    #         slicer.util.removeNode(node)
-
-    def removeLoadedImgAndSegmentationNodes(self):
-        def remove_img_and_segmentation_nodes(img_node_name: str, segmentation_node_name: str):
-            volume_node = slicer.util.getNode(f"{img_node_name}*")
-            segmentation_node = slicer.util.getNode(segmentation_node_name)
-            label_map_volume_node = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLLabelMapVolumeNode")
-            slicer.modules.segmentations.logic().ExportVisibleSegmentsToLabelmapNode(segmentation_node, label_map_volume_node, volume_node)
-            print("saving")
-
-            # turn .nii.gz to .nii, due to extensions with more than 1 dot is deprecated in qt
-            filename = str(Path(segmentation_node_name).stem) 
-            slicer.util.saveNode(label_map_volume_node, filename=filename)
-            Path(filename).rename(filename + ".gz")
-
-            slicer.mrmlScene.RemoveNode(label_map_volume_node.GetDisplayNode().GetColorNode())
-            slicer.mrmlScene.RemoveNode(label_map_volume_node)
-            slicer.mrmlScene.RemoveNode(volume_node)
-            slicer.mrmlScene.RemoveNode(segmentation_node)
-
-        index = self.loaded_segmentation_index
-        if index is None:
-            return
-        dir_path = self.loaded_segmentation.dir_path
-
-
-        if not self.standard_view:
-            remove_img_and_segmentation_nodes(
-                dir_path / file_type_to_name(FileType.SUB_IMG, index - 1),
-                dir_path / file_type_to_name(FileType.SUB_IMG_SEGMENTATION, index - 1)
-            )
-            return
-
-        remove_img_and_segmentation_nodes(
-            str(dir_path / file_type_to_name(FileType.IMG, index)),
-            str(dir_path / file_type_to_name(FileType.IMG_SEGMENTATION, index))
-        )
+    #     remove_img_and_segmentation_nodes(
+    #         str(dir_path / file_type_to_name(FileType.IMG, index)),
+    #         str(dir_path / file_type_to_name(FileType.IMG_SEGMENTATION, index))
+    #     )
 
     def onLoadSegmentationDirectory(self):
         self.updateBtnLoadDirectory()
@@ -372,56 +369,84 @@ class MainWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         if not os.path.isdir(segmentation_dir_path):
             return
 
-        self.removeLoadedImgAndSegmentationNodes()
-
-        logging.info("Setting visibility of all segmentations to 0...")
-        self.setSegmentationNodesToInvisible()
+        self.unloadSegmentationDirectory()
 
         self.ui.pthLoadSegmentationDirectory.currentPath = "/home/chessnut/Code/MS_lesion_visualiser/test_assets/vnet_predictions/Public_Patient0"
         self.loaded_segmentation = SegmentationDir(self.ui.pthLoadSegmentationDirectory.currentPath)
-        with SetParameters(self._parameterNode) as parameter_node:
-            parameter_node.SetParameter("segmentation_dir_path", self.ui.pthLoadSegmentationDirectory.currentPath)
-            parameter_node.SetParameter("segmentation_img_index", "0")
+        # with SetParameters(self._parameterNode) as parameter_node:
+        #     parameter_node.SetParameter("segmentation_dir_path", self.ui.pthLoadSegmentationDirectory.currentPath)
+        #     parameter_node.SetParameter("segmentation_img_index", "0")
         self.load_segmentation_img_index(0)
 
+    def set_volume_node_to_visible(self, volume_node):
+        appLogic = slicer.app.applicationLogic()
+        selectionNode = appLogic.GetSelectionNode()
+        selectionNode.SetActiveVolumeID(volume_node.GetID())
+        appLogic.PropagateVolumeSelection()
+
+    def load_volume_node_if_not_exists(self, path, name, search_pattern):
+        try:
+            self.set_volume_node_to_visible(slicer.util.getNode(f"{search_pattern}*"))
+        except MRMLNodeNotFoundException:
+            slicer.util.loadVolume(
+                path, 
+                properties={
+                    "name": name, 
+                    "labelmap": False, 
+                    "singleFile": True, 
+                    "show": True
+                }
+            )
+
+    def load_segmentation_node_if_not_exists(self, path, name, search_pattern):
+        try:
+            slicer.util.getNode(f"{search_pattern}").SetDisplayVisibility(1)
+        except MRMLNodeNotFoundException:
+            slicer.util.loadSegmentation(path, properties={"name": name})
+
+
+
     def load_segmentation_img_index(self, index: int) -> None:
-        logging.info(f"Loading segmentation index {index}")
+        self.setSegmentationNodesToInvisible()
 
-        self.removeLoadedImgAndSegmentationNodes()
-            
-        slicer.util.loadVolume(
-            str(Path(self.loaded_segmentation.dir_path) / file_type_to_name(FileType.IMG, index)), 
-            properties={
-                "name": f"{Path(self.loaded_segmentation.dir_path) / file_type_to_name(FileType.IMG, index)}", 
-                "labelmap": False, 
-                "singleFile": True, 
-                "show": True})
-
-        slicer.util.loadSegmentation(
-            str(Path(self.loaded_segmentation.dir_path) / file_type_to_name(FileType.IMG_SEGMENTATION, index)), 
-            properties={"name": f"{Path(self.loaded_segmentation.dir_path) / file_type_to_name(FileType.IMG_SEGMENTATION, index)}"})
-
+        logging.info(f"Loading segmentation index {index}")        
+        volume_file_path = str(self.loaded_segmentation.dir_path / file_type_to_name(FileType.IMG, index))
+        self.load_volume_node_if_not_exists(
+            volume_file_path,
+            volume_file_path,
+            volume_file_path + "*"
+        )
+        segmentation_file_path = str(Path(self.loaded_segmentation.dir_path) / file_type_to_name(FileType.IMG_SEGMENTATION, index))
+        self.load_segmentation_node_if_not_exists(
+            segmentation_file_path,
+            segmentation_file_path,
+            segmentation_file_path,
+        )
         self.loaded_segmentation_index = index
         self.ui.nextButton.setEnabled(self.loaded_segmentation.index_is_valid_for_img(index + 1))
         self.ui.prevButton.setEnabled(self.loaded_segmentation.index_is_valid_for_img(index - 1))
+        print("checking")
+        print(self.loaded_segmentation.index_is_valid_for_sub_img(index - 1))
         self.ui.btnCompare.setEnabled(self.loaded_segmentation.index_is_valid_for_sub_img(index - 1))
         self.set_standard_view(standard_view=True)
 
 
     def load_segmentation_sub_img_index(self, index: int) -> None:
+        self.setSegmentationNodesToInvisible()
+
         logging.info(f"Loading sub segmentation index {index}")
-        self.removeLoadedImgAndSegmentationNodes()
-        # self.loaded_segmentation_index = index + 1
-        slicer.util.loadVolume(
-            str(Path(self.loaded_segmentation.dir_path) / file_type_to_name(FileType.SUB_IMG, index)), 
-            properties={
-                "name": f"{Path(self.loaded_segmentation.dir_path) / file_type_to_name(FileType.SUB_IMG, index)}", 
-                "labelmap": False, 
-                "singleFile": True, 
-                "show": True})
-        slicer.util.loadSegmentation(
-            str(Path(self.loaded_segmentation.dir_path) / file_type_to_name(FileType.SUB_IMG_SEGMENTATION, index)), 
-            properties={"name": f"{Path(self.loaded_segmentation.dir_path) / file_type_to_name(FileType.SUB_IMG_SEGMENTATION, index)}"})
+        volume_file_path = str(Path(self.loaded_segmentation.dir_path) / file_type_to_name(FileType.SUB_IMG, index))
+        self.load_volume_node_if_not_exists(
+            volume_file_path,
+            volume_file_path,
+            volume_file_path + "*"
+        )
+        segmentation_file_path = str(Path(self.loaded_segmentation.dir_path) / file_type_to_name(FileType.SUB_IMG_SEGMENTATION, index))
+        self.load_segmentation_node_if_not_exists(
+            segmentation_file_path,
+            segmentation_file_path,
+            segmentation_file_path,
+        )
         self.ui.nextButton.setEnabled(False)
         self.ui.prevButton.setEnabled(False)
         self.ui.btnCompare.setEnabled(True)
@@ -437,19 +462,13 @@ class MainWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.standard_view = False
 
     def onPrevButton(self):
-        segmentation_img_index = int(self._parameterNode.GetParameter("segmentation_img_index"))
-        self._parameterNode.SetParameter("segmentation_img_index", str(segmentation_img_index - 1))
         self.load_segmentation_img_index(self.loaded_segmentation_index - 1)
 
     def onNextButton(self):
-        segmentation_img_index = int(self._parameterNode.GetParameter("segmentation_img_index"))
-        self._parameterNode.SetParameter("segmentation_img_index", str(segmentation_img_index + 1))
         self.load_segmentation_img_index(self.loaded_segmentation_index + 1)
 
     def onCompareButton(self):
-        old_standard_view = self._parameterNode.GetParameter("standard_view")
-        new_standard_view = "true" if old_standard_view == "false" else "false"
-        self._parameterNode.SetParameter("standard_view", new_standard_view)
+        print("compared")
         if not self.standard_view:
             self.load_segmentation_img_index(self.loaded_segmentation_index)
             return
@@ -483,9 +502,6 @@ class MainLogic(ScriptedLoadableModuleLogic):
         """
         Initialize parameter node with default settings.
         """
-        parameterNode.SetParameter("standard_view", "true")
-        parameterNode.SetParameter("segmentation_dir_path", "none")
-        parameterNode.SetParameter("segmentation_img_index", "0")
 
     # def process(self, inputVolume, outputVolume, imageThreshold, invert=False, showResult=True):
     #     """
