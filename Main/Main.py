@@ -6,11 +6,9 @@ import slicer
 from slicer.ScriptedLoadableModule import *
 from slicer.util import VTKObservationMixin, getNode, getNodes
 from packages.utils.context_managers import TempDir, SetParameters, BlockMethod
-from packages.segmentation.segmentation import SegmentationDir
+from packages.segmentation.segmentation import SegmentationDir, View
 from packages.segmentation.file_types import file_type_to_name, FileType
 from packages.testing.test_segmentation_dir import SegmentationDirectoryTest
-from slicer.util import MRMLNodeNotFoundException
-
 # import nibabel as nib
 import numpy as np
 #
@@ -159,13 +157,12 @@ class MainWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.ui.btnSaveCurrentSegmentation.connect("clicked(bool)", self.onBtnSaveCurrentSegmentation)
         self.ui.btnSaveAllSegmentations.connect("clicked(bool)", self.onBtnSaveAllSegmentations)
 
-        self.set_standard_view(standard_view=True)
+        self.set_view(View.STANDARD)
 
         # Make sure parameter node is initialized (needed for module reload)
-        self.initializeParameterNode()
+        # self.initializeParameterNode()
 
-        self.loaded_segmentation = None
-        self.loaded_segmentation_index = None
+        self.segmentation = None
 
     def cleanup(self):
         """
@@ -177,15 +174,18 @@ class MainWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         """
         Called each time the user opens this module.
         """
+        pass
         # Make sure parameter node exists and observed
-        self.initializeParameterNode()
+        # self.initializeParameterNode()
 
     def exit(self):
         """
         Called each time the user opens a different module.
         """
+        print("exit")
+        pass
         # Do not react to parameter node changes (GUI will be updated when the user enters into the module)
-        self.removeObserver(self._parameterNode, vtk.vtkCommand.ModifiedEvent, self.updateGUIFromParameterNode)
+        # self.removeObserver(self._parameterNode, vtk.vtkCommand.ModifiedEvent, self.updateGUIFromParameterNode)
 
     def onSceneStartClose(self, caller, event):
         """
@@ -193,7 +193,7 @@ class MainWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         """
         # Parameter node will be reset, do not use it anymore
         print("hi!")
-        self.setParameterNode(None)
+        # self.setParameterNode(None)
 
     def onSceneEndClose(self, caller, event):
         """
@@ -201,8 +201,8 @@ class MainWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         """
         # If this module is shown while the scene is closed then recreate a new parameter node immediately
         print("omg")
-        if self.parent.isEntered:
-            self.initializeParameterNode()
+        # if self.parent.isEntered:
+        #     self.initializeParameterNode()
 
     def initializeParameterNode(self):
         """
@@ -210,44 +210,44 @@ class MainWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         """
         # Parameter node stores all user choices in parameter values, node selections, etc.
         # so that when the scene is saved and reloaded, these settings are restored.
+        pass
+        # self.setParameterNode(self.logic.getParameterNode())
 
-        self.setParameterNode(self.logic.getParameterNode())
-
-        # Select default input nodes if nothing is selected yet to save a few clicks for the user
-        if not self._parameterNode.GetNodeReference("InputVolume"):
-            firstVolumeNode = slicer.mrmlScene.GetFirstNodeByClass("vtkMRMLScalarVolumeNode")
-            if firstVolumeNode:
-                self._parameterNode.SetNodeReferenceID("InputVolume", firstVolumeNode.GetID())
+        # # Select default input nodes if nothing is selected yet to save a few clicks for the user
+        # if not self._parameterNode.GetNodeReference("InputVolume"):
+        #     firstVolumeNode = slicer.mrmlScene.GetFirstNodeByClass("vtkMRMLScalarVolumeNode")
+        #     if firstVolumeNode:
+        #         self._parameterNode.SetNodeReferenceID("InputVolume", firstVolumeNode.GetID())
 
     def setParameterNode(self, inputParameterNode):
         """
         Set and observe parameter node.
         Observation is needed because when the parameter node is changed then the GUI must be updated immediately.
         """
+        pass
+        # if inputParameterNode:
+        #     self.logic.setDefaultParameters(inputParameterNode)
 
-        if inputParameterNode:
-            self.logic.setDefaultParameters(inputParameterNode)
+        # # Unobserve previously selected parameter node and add an observer to the newly selected.
+        # # Changes of parameter node are observed so that whenever parameters are changed by a script or any other module
+        # # those are reflected immediately in the GUI.
+        # if self._parameterNode is not None:
+        #     self.removeObserver(self._parameterNode, vtk.vtkCommand.ModifiedEvent, self.updateGUIFromParameterNode)
+        # self._parameterNode = inputParameterNode
+        # if self._parameterNode is not None:
+        #     self.addObserver(self._parameterNode, vtk.vtkCommand.ModifiedEvent, self.updateGUIFromParameterNode)
 
-        # Unobserve previously selected parameter node and add an observer to the newly selected.
-        # Changes of parameter node are observed so that whenever parameters are changed by a script or any other module
-        # those are reflected immediately in the GUI.
-        if self._parameterNode is not None:
-            self.removeObserver(self._parameterNode, vtk.vtkCommand.ModifiedEvent, self.updateGUIFromParameterNode)
-        self._parameterNode = inputParameterNode
-        if self._parameterNode is not None:
-            self.addObserver(self._parameterNode, vtk.vtkCommand.ModifiedEvent, self.updateGUIFromParameterNode)
-
-        # Initial GUI update
-        self.updateGUIFromParameterNode()
+        # # Initial GUI update
+        # self.updateGUIFromParameterNode()
 
     def updateGUIFromParameterNode(self, caller=None, event=None):
         """
         This method is called whenever parameter node is changed.
         The module GUI is updated to show the current state of the parameter node.
         """
-
-        if self._parameterNode is None:
-            return
+        pass
+        # if self._parameterNode is None:
+        #     return
 
         # Make sure GUI changes do not call updateParameterNodeFromGUI (it could cause infinite loop)
         # with BlockMethod(self, "updateParameterNodeFromGUI"):
@@ -296,49 +296,6 @@ class MainWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
     def onSegmentationDirectoryModified(self):
         self.updateBtnLoadDirectory()
-        
-    def setSegmentationNodesToInvisible(self):
-        # Sets the visibility of the segmentation nodes to 0. It does not set the visibility of each segment to 0
-        for i in range(slicer.mrmlScene.GetNumberOfNodesByClass('vtkMRMLSegmentationNode')):
-            slicer.mrmlScene.GetNthNodeByClass(i, 'vtkMRMLSegmentationNode').SetDisplayVisibility(0)
-
-    def unloadSegmentationDirectory(self):
-        if self.loaded_segmentation is None:
-            return
-
-        dir_path = Path(self.loaded_segmentation.dir_path)
-        for i in self.loaded_segmentation.imgs_paths.values():
-            try:
-                node = slicer.util.getNode(f"{dir_path / file_type_to_name(FileType.IMG, i)}*")
-            except MRMLNodeNotFoundException:
-                continue
-            slicer.mrmlScene.RemoveNode(node)
-        for i in self.loaded_segmentation.imgs_segmentations_paths.values():
-            try:
-                node = slicer.util.getNode(str(dir_path / file_type_to_name(FileType.IMG_SEGMENTATION, i)))
-            except MRMLNodeNotFoundException:
-                continue
-            slicer.mrmlScene.RemoveNode(node)
-        for i in self.loaded_segmentation.sub_imgs_paths.values():
-            try:
-                node = slicer.util.getNode(f"{dir_path / file_type_to_name(FileType.SUB_IMG, i)}*")
-            except MRMLNodeNotFoundException:
-                continue
-            slicer.mrmlScene.RemoveNode(node)
-        for i in self.loaded_segmentation.sub_imgs_segmentations_paths.values():
-            try:
-                node = slicer.util.getNode(str(dir_path / file_type_to_name(FileType.SUB_IMG_SEGMENTATION, i)))
-            except MRMLNodeNotFoundException:
-                continue
-            slicer.mrmlScene.RemoveNode(node)
-
-
-    def save_segmentation(self, segmentation_node, save_file_path, volume_node):
-        label_map_volume_node = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLLabelMapVolumeNode")
-        slicer.modules.segmentations.logic().ExportVisibleSegmentsToLabelmapNode(segmentation_node, label_map_volume_node, volume_node)
-        slicer.util.saveNode(label_map_volume_node, filename=save_file_path)
-        slicer.mrmlScene.RemoveNode(label_map_volume_node.GetDisplayNode().GetColorNode())
-        slicer.mrmlScene.RemoveNode(label_map_volume_node)
 
     def onLoadSegmentationDirectory(self):
         self.updateBtnLoadDirectory()
@@ -347,129 +304,64 @@ class MainWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         if not os.path.isdir(segmentation_dir_path):
             return
 
-        self.unloadSegmentationDirectory()
+        if self.segmentation is not None:
+            self.segmentation.unload()
 
-        self.ui.pthLoadSegmentationDirectory.currentPath = "/home/chessnut/Code/MS_lesion_visualiser/test_assets/vnet_predictions/Public_Patient0"
-        self.loaded_segmentation = SegmentationDir(self.ui.pthLoadSegmentationDirectory.currentPath)
+        self.ui.pthLoadSegmentationDirectory.currentPath = "/home/alistair/Code/MS_lesion_visualiser/test_assets/vnet_predictions/Public_Patient0"
+        self.segmentation = SegmentationDir(self.ui.pthLoadSegmentationDirectory.currentPath)
         # with SetParameters(self._parameterNode) as parameter_node:
         #     parameter_node.SetParameter("segmentation_dir_path", self.ui.pthLoadSegmentationDirectory.currentPath)
         #     parameter_node.SetParameter("segmentation_img_index", "0")
         self.load_segmentation_img_index(0)
 
-    def set_volume_node_to_visible(self, volume_node):
-        appLogic = slicer.app.applicationLogic()
-        selectionNode = appLogic.GetSelectionNode()
-        selectionNode.SetActiveVolumeID(volume_node.GetID())
-        appLogic.PropagateVolumeSelection()
-
-    def load_volume_node_if_not_exists(self, path, name, search_pattern):
-        try:
-            self.set_volume_node_to_visible(slicer.util.getNode(f"{search_pattern}*"))
-        except MRMLNodeNotFoundException:
-            slicer.util.loadVolume(
-                path, 
-                properties={
-                    "name": name, 
-                    "labelmap": False, 
-                    "singleFile": True, 
-                    "show": True
-                }
-            )
-
-    def load_segmentation_node_if_not_exists(self, path, name, search_pattern):
-        try:
-            slicer.util.getNode(f"{search_pattern}").SetDisplayVisibility(1)
-        except MRMLNodeNotFoundException:
-            slicer.util.loadSegmentation(path, properties={"name": name})
-
-
-
     def load_segmentation_img_index(self, index: int) -> None:
-        self.setSegmentationNodesToInvisible()
+        self.segmentation.load_index(View.STANDARD, index)
 
-        logging.info(f"Loading segmentation index {index}")        
-        volume_file_path = str(self.loaded_segmentation.dir_path / file_type_to_name(FileType.IMG, index))
-        self.load_volume_node_if_not_exists(
-            volume_file_path,
-            volume_file_path,
-            volume_file_path + "*"
-        )
-        segmentation_file_path = str(Path(self.loaded_segmentation.dir_path) / file_type_to_name(FileType.IMG_SEGMENTATION, index))
-        self.load_segmentation_node_if_not_exists(
-            segmentation_file_path,
-            segmentation_file_path,
-            segmentation_file_path,
-        )
-        self.loaded_segmentation_index = index
-        self.ui.nextButton.setEnabled(self.loaded_segmentation.index_is_valid_for_img(index + 1))
-        self.ui.prevButton.setEnabled(self.loaded_segmentation.index_is_valid_for_img(index - 1))
-        self.ui.btnCompare.setEnabled(self.loaded_segmentation.index_is_valid_for_sub_img(index - 1))
-        self.set_standard_view(standard_view=True)
+        self.ui.nextButton.setEnabled(self.segmentation.index_is_valid_for_img(index + 1))
+        self.ui.prevButton.setEnabled(self.segmentation.index_is_valid_for_img(index - 1))
+        self.ui.btnCompare.setEnabled(self.segmentation.index_is_valid_for_sub_img(index - 1))
+        self.set_view(View.STANDARD)
 
 
     def load_segmentation_sub_img_index(self, index: int) -> None:
-        self.setSegmentationNodesToInvisible()
+        self.segmentation.load_index(View.SUB, index)
 
-        logging.info(f"Loading sub segmentation index {index}")
-        volume_file_path = str(Path(self.loaded_segmentation.dir_path) / file_type_to_name(FileType.SUB_IMG, index))
-        self.load_volume_node_if_not_exists(
-            volume_file_path,
-            volume_file_path,
-            volume_file_path + "*"
-        )
-        segmentation_file_path = str(Path(self.loaded_segmentation.dir_path) / file_type_to_name(FileType.SUB_IMG_SEGMENTATION, index))
-        self.load_segmentation_node_if_not_exists(
-            segmentation_file_path,
-            segmentation_file_path,
-            segmentation_file_path,
-        )
         self.ui.nextButton.setEnabled(False)
         self.ui.prevButton.setEnabled(False)
         self.ui.btnCompare.setEnabled(True)
-        self.set_standard_view(standard_view=False)
+        self.set_view(View.SUB)
 
-    def set_standard_view(self, standard_view: bool):
-        if standard_view:
+    def set_view(self, view: View):
+        if view == View.STANDARD:
             self.ui.btnCompare.text = "Compare with Previous Image"
-            self.standard_view = True
             return
-
-        self.ui.btnCompare.text = "Return to Standard View"
-        self.standard_view = False
+        if view == View.SUB:
+            self.ui.btnCompare.text = "Return to Standard View"
+            return
+        
 
     def onPrevButton(self):
-        self.load_segmentation_img_index(self.loaded_segmentation_index - 1)
+        self.load_segmentation_img_index(self.segmentation.index - 1)
 
     def onNextButton(self):
-        self.load_segmentation_img_index(self.loaded_segmentation_index + 1)
+        self.load_segmentation_img_index(self.segmentation.index + 1)
 
     def onCompareButton(self):
-        if not self.standard_view:
-            self.load_segmentation_img_index(self.loaded_segmentation_index)
+        if self.segmentation.view == View.STANDARD:
+            self.load_segmentation_sub_img_index(self.segmentation.index - 1)
             return
-        self.load_segmentation_sub_img_index(self.loaded_segmentation_index - 1)
+        if self.segmentation.view == View.SUB:
+            self.load_segmentation_img_index(self.segmentation.index + 1)
+            return
+        
 
     def onBtnSaveCurrentSegmentation(self):
-        index = self.loaded_segmentation_index
-        dir_path = self.loaded_segmentation.dir_path
-        if self.standard_view:
-            volume_node_file_path = str(dir_path / file_type_to_name(FileType.IMG, index))
-            segmentation_file_path = str(dir_path / file_type_to_name(FileType.IMG_SEGMENTATION, index))
-        else:
-            volume_node_file_path = str(dir_path / file_type_to_name(FileType.SUB_IMG, index - 1))
-            segmentation_file_path = str(dir_path / file_type_to_name(FileType.SUB_IMG_SEGMENTATION, index - 1))
-
-        volume_node = slicer.util.getNode(f"{volume_node_file_path}*")
-        segmentation_node = slicer.util.getNode(segmentation_file_path)
-
-        self.save_segmentation(
-            segmentation_node=segmentation_node,
-            save_file_path=segmentation_file_path,
-            volume_node=volume_node
-        )
+        self.segmentation.save_current_index()
 
     def onBtnSaveAllSegmentations(self):
         pass
+        # for img, img_segmentation in x:
+        #     save(img, img_segmentation)
 
 
 #
