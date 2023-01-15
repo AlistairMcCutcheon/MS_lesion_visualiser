@@ -94,30 +94,22 @@ class SegmentationDir:
         pass
 
     def unload(self):
-        for i in self.imgs_paths.values():
+        def remove_node(search_pattern):
             try:
-                node = slicer.util.getNode(f"{self.get_path(FileType.IMG, i)}*")
+                node = slicer.util.getNode(search_pattern)
             except MRMLNodeNotFoundException:
-                continue
+                return
             slicer.mrmlScene.RemoveNode(node)
-        for i in self.imgs_segmentations_paths.values():
-            try:
-                node = slicer.util.getNode(self.get_path(FileType.IMG_SEGMENTATION, i))
-            except MRMLNodeNotFoundException:
-                continue
-            slicer.mrmlScene.RemoveNode(node)
-        for i in self.sub_imgs_paths.values():
-            try:
-                node = slicer.util.getNode(f"{self.get_path(FileType.SUB_IMG, i)}*")
-            except MRMLNodeNotFoundException:
-                continue
-            slicer.mrmlScene.RemoveNode(node)
-        for i in self.sub_imgs_segmentations_paths.values():
-            try:
-                node = slicer.util.getNode(self.get_path(FileType.SUB_IMG_SEGMENTATION, i))
-            except MRMLNodeNotFoundException:
-                continue
-            slicer.mrmlScene.RemoveNode(node)
+
+        for i in self.imgs_paths:
+            remove_node(f"{file_type_to_name(FileType.IMG, i)}*")
+        for i in self.imgs_segmentations_paths:
+            remove_node(file_type_to_name(FileType.IMG_SEGMENTATION, i))
+        for i in self.sub_imgs_paths:
+            remove_node(f"{file_type_to_name(FileType.SUB_IMG, i)}*")
+        for i in self.sub_imgs_segmentations_paths:
+            remove_node(file_type_to_name(FileType.SUB_IMG_SEGMENTATION, i))
+
 
     def load_volume_node_if_not_exists(self, path, name, search_pattern):
         try:
@@ -150,44 +142,29 @@ class SegmentationDir:
         for i in range(slicer.mrmlScene.GetNumberOfNodesByClass('vtkMRMLSegmentationNode')):
             slicer.mrmlScene.GetNthNodeByClass(i, 'vtkMRMLSegmentationNode').SetDisplayVisibility(0)
 
-    def save_segmentation(self, segmentation_node, save_file_path, volume_node):
-        label_map_volume_node = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLLabelMapVolumeNode")
-        slicer.modules.segmentations.logic().ExportVisibleSegmentsToLabelmapNode(segmentation_node, label_map_volume_node, volume_node)
-        slicer.util.saveNode(label_map_volume_node, filename=save_file_path)
-        slicer.mrmlScene.RemoveNode(label_map_volume_node.GetDisplayNode().GetColorNode())
-        slicer.mrmlScene.RemoveNode(label_map_volume_node)
-
     def load_index(self, view: View, index: int):
         self.setSegmentationNodesToInvisible()
 
         volume_filetype, segmentation_filetype = view_to_filetypes(view)
 
         volume_file_path = self.get_path(volume_filetype, index)
+        volume_name = file_type_to_name(volume_filetype, index)
+
         self.load_volume_node_if_not_exists(
             volume_file_path,
-            volume_file_path,
-            volume_file_path + "*"
+            volume_name,
+            volume_name + "*"
         )
+
         segmentation_file_path = self.get_path(segmentation_filetype, index)
+        segmentation_name = file_type_to_name(segmentation_filetype, index)
+
         self.load_segmentation_node_if_not_exists(
             segmentation_file_path,
-            segmentation_file_path,
-            segmentation_file_path,
+            segmentation_name,
+            segmentation_name,
         )
 
         self.view = view
         self.index = index
 
-    def save_current_index(self):
-        volume_filetype, segmentation_filetype = view_to_filetypes(self.view)
-        volume_file_path = self.get_path(volume_filetype, self.index)
-        segmentation_file_path = self.get_path(segmentation_filetype, self.index)
-
-        volume_node = slicer.util.getNode(f"{volume_file_path}*")
-        segmentation_node = slicer.util.getNode(segmentation_file_path)
-
-        self.save_segmentation(
-            segmentation_node=segmentation_node,
-            save_file_path=segmentation_file_path,
-            volume_node=volume_node
-        )

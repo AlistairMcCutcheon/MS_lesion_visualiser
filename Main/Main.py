@@ -154,9 +154,6 @@ class MainWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.ui.prevButton.connect("clicked(bool)", self.onPrevButton)
         self.ui.nextButton.connect("clicked(bool)", self.onNextButton)
         self.ui.btnCompare.connect("clicked(bool)", self.onCompareButton)
-        self.ui.btnSaveCurrentSegmentation.connect("clicked(bool)", self.onBtnSaveCurrentSegmentation)
-        self.ui.btnSaveAllSegmentations.connect("clicked(bool)", self.onBtnSaveAllSegmentations)
-
         self.set_view(View.STANDARD)
 
         # Make sure parameter node is initialized (needed for module reload)
@@ -182,8 +179,6 @@ class MainWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         """
         Called each time the user opens a different module.
         """
-        print("exit")
-        pass
         # Do not react to parameter node changes (GUI will be updated when the user enters into the module)
         # self.removeObserver(self._parameterNode, vtk.vtkCommand.ModifiedEvent, self.updateGUIFromParameterNode)
 
@@ -192,15 +187,14 @@ class MainWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         Called just before the scene is closed.
         """
         # Parameter node will be reset, do not use it anymore
-        print("hi!")
         # self.setParameterNode(None)
 
     def onSceneEndClose(self, caller, event):
         """
         Called just after the scene is closed.
         """
+        pass
         # If this module is shown while the scene is closed then recreate a new parameter node immediately
-        print("omg")
         # if self.parent.isEntered:
         #     self.initializeParameterNode()
 
@@ -307,7 +301,7 @@ class MainWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         if self.segmentation is not None:
             self.segmentation.unload()
 
-        self.ui.pthLoadSegmentationDirectory.currentPath = "/home/alistair/Code/MS_lesion_visualiser/test_assets/vnet_predictions/Public_Patient0"
+        self.ui.pthLoadSegmentationDirectory.currentPath = "/home/alistair/Code/MS_lesion_visualiser/test_assets/vnet_predictions/Public_Patient1"
         self.segmentation = SegmentationDir(self.ui.pthLoadSegmentationDirectory.currentPath)
         # with SetParameters(self._parameterNode) as parameter_node:
         #     parameter_node.SetParameter("segmentation_dir_path", self.ui.pthLoadSegmentationDirectory.currentPath)
@@ -353,15 +347,6 @@ class MainWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         if self.segmentation.view == View.SUB:
             self.load_segmentation_img_index(self.segmentation.index + 1)
             return
-        
-
-    def onBtnSaveCurrentSegmentation(self):
-        self.segmentation.save_current_index()
-
-    def onBtnSaveAllSegmentations(self):
-        pass
-        # for img, img_segmentation in x:
-        #     save(img, img_segmentation)
 
 
 #
