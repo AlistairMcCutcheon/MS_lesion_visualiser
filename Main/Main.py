@@ -98,7 +98,7 @@ class MainWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         pass
         # Make sure parameter node exists and observed
         self.initializeParameterNode()
-        self.updateGUIFromParameterNode()
+        # self.updateGUIFromParameterNode()
 
     def exit(self):
         """
@@ -163,56 +163,10 @@ class MainWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         The module GUI is updated to show the current state of the parameter node.
         """
 
-        def compare_seg_dir_and_attempted_seg_dir():
-            seg_dir_path = self.parameter_node.GetParameter("segmentation_dir_path")
-            attempted_seg_dir_path = self.parameter_node.GetParameter("attempted_segmentation_dir_path")
-
-            if seg_dir_path == attempted_seg_dir_path:
-                return
-            if not os.path.isdir(attempted_seg_dir_path):
-                return
-            with SetParameters(self.parameter_node) as parameter_node:
-                parameter_node.SetParameter("segmentation_dir_path", attempted_seg_dir_path)
-                parameter_node.SetParameter("segmentation_img_index", "0")
-
-        def index_modified() -> bool:
-            return not self.logic.segmentation.index == int(self.parameter_node.GetParameter("index"))
-
-        def view_modified() -> bool:
-            return not self.logic.segmentation.view.value == int(self.parameter_node.GetParameter("view"))
-
-        def seg_dir_modified() -> bool:
-            if self.logic.segmentation is None:
-                return self.parameter_node.GetParameter("segmentation_dir_path") != ""
-
-            return not self.logic.segmentation.dir_path == self.parameter_node.GetParameter("segmentation_dir_path")
-
-        def update_seg_dir():
-            if not seg_dir_modified():
-                return
-            if self.logic.segmentation is not None:
-                self.logic.segmentation.unload()
-            try:
-                self.logic.segmentation = SegmentationDir(self.parameter_node.GetParameter("segmentation_dir_path"))
-            except InvalidSegmentationDirError as e:
-                logging.warn(str(e))
-                self.logic.segmentation = None
-                with SetParameters(self.parameter_node) as parameter_node:
-                    self.logic.set_segmentation_default_params(parameter_node)
-                    parameter_node.SetParameter("attempted_segmentation_dir_path", "")
-        
-
         if self.parameter_node is None:
             return
-
-        compare_seg_dir_and_attempted_seg_dir()
-        update_seg_dir()
         
-        if self.logic.segmentation is not None and (view_modified() or index_modified()):
-            self.logic.segmentation.load_index(
-                View(int(self.parameter_node.GetParameter("view"))),
-                int(self.parameter_node.GetParameter("index"))
-            )
+        self.logic.update_segmentation(self.parameter_node)
 
         # Make sure GUI changes do not call updateParameterNodeFromGUI (it could cause infinite loop)
         with BlockMethod(self, "updateParameterNodeFromGUI"):
@@ -309,21 +263,82 @@ class MainLogic(ScriptedLoadableModuleLogic):
         ScriptedLoadableModuleLogic.__init__(self)
         self.segmentation = None
 
-    def set_default_params(self, parameter_node):
+    def set_default_params(self, parameter_node, override=False):
         """
         Initialize parameter node with default settings.
         """
         self.set_gui_default_params(parameter_node)
         self.set_segmentation_default_params(parameter_node)
 
-    def set_gui_default_params(self, parameter_node):
-        parameter_node.SetParameter("attempted_segmentation_dir_path", "")
-        parameter_node.SetParameter("intermediate_attempted_segmentation_dir_path", "")
+    def set_gui_default_params(self, parameter_node, override=False):
+        param_to_value = {
+            "attempted_segmentation_dir_path": "none",
+            "intermediate_attempted_segmentation_dir_path": "none"
+        }
+        self.set_params(parameter_node, param_to_value, override)
 
-    def set_segmentation_default_params(self, parameter_node):
-        parameter_node.SetParameter("segmentation_dir_path", "")
-        parameter_node.SetParameter("view", "1")
-        parameter_node.SetParameter("index", "0")
+    def set_segmentation_default_params(self, parameter_node, override=False):
+        # if self.segmentation is not None:
+        #     self.segmentation = None
+        param_to_value = {
+            "segmentation_dir_path": "none",
+            "view": "1",
+            "index": "0"
+        }
+        self.set_params(parameter_node, param_to_value, override)
+
+    def set_params(self, parameter_node, param_to_value: dict[str: str], override=False):
+        for param, value in param_to_value.items():
+            if override or not parameter_node.GetParameter(param):
+                parameter_node.SetParameter(param, value)
+
+    def update_segmentation(self, parameter_node):
+        def compare_seg_dir_and_attempted_seg_dir():
+            seg_dir_path = parameter_node.GetParameter("segmentation_dir_path")
+            attempted_seg_dir_path = parameter_node.GetParameter("attempted_segmentation_dir_path")
+
+            if seg_dir_path == attempted_seg_dir_path:
+                return
+            if not os.path.isdir(attempted_seg_dir_path):
+                return
+            with SetParameters(parameter_node) as param_node:
+                param_node.SetParameter("segmentation_dir_path", attempted_seg_dir_path)
+                param_node.SetParameter("segmentation_img_index", "0")
+
+        def index_modified() -> bool:
+            return not self.segmentation.index == int(parameter_node.GetParameter("index"))
+
+        def view_modified() -> bool:
+            return not self.segmentation.view.value == int(parameter_node.GetParameter("view"))
+
+        def seg_dir_modified() -> bool:
+            if self.segmentation is None:
+                return parameter_node.GetParameter("segmentation_dir_path") != "none"
+
+            return not self.segmentation.dir_path == parameter_node.GetParameter("segmentation_dir_path")
+
+        def update_seg_dir():
+            if not seg_dir_modified():
+                return
+            if self.segmentation is not None:
+                self.segmentation.unload()
+            try:
+                self.segmentation = SegmentationDir(parameter_node.GetParameter("segmentation_dir_path"))
+            except InvalidSegmentationDirError as e:
+                logging.warn(str(e))
+                self.segmentation = None
+                with SetParameters(parameter_node) as param_node:
+                    self.set_segmentation_default_params(param_node, override=True)
+                    param_node.SetParameter("attempted_segmentation_dir_path", "none")
+        
+        compare_seg_dir_and_attempted_seg_dir()
+        update_seg_dir()
+        
+        if self.segmentation is not None and (view_modified() or index_modified()):
+            self.segmentation.load_index(
+                View(int(parameter_node.GetParameter("view"))),
+                int(parameter_node.GetParameter("index"))
+            )
 
     def load_index(self, view: View, index: int) -> None:
         self.segmentation.load_index(view, index)
