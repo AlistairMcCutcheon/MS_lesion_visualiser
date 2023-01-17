@@ -152,9 +152,7 @@ class MainWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         if self.parameter_node is not None:
             self.removeObserver(self.parameter_node, vtk.vtkCommand.ModifiedEvent, self.updateGUIFromParameterNode)
         self.parameter_node = inputParameterNode
-        print("might observe")
         if self.parameter_node is not None:
-            print("observing")
             self.addObserver(self.parameter_node, vtk.vtkCommand.ModifiedEvent, self.updateGUIFromParameterNode)
 
         # Initial GUI update
@@ -196,23 +194,18 @@ class MainWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
         def update_seg_dir():
             if not seg_dir_modified():
-                print("not modified")
                 return
-            print("modified")
-            self.logic.segmentation.unload()
+            if self.logic.segmentation is not None:
+                self.logic.segmentation.unload()
             self.logic.segmentation = SegmentationDir(self.parameter_node.GetParameter("segmentation_dir_path"))
         
 
-        print("4")
         if self.parameter_node is None:
             return
-        print("5")
 
         compare_seg_dir_and_attempted_seg_dir()
         load_dir = seg_dir_modified() or index_modified() or view_modified()
-        print(load_dir)
         update_seg_dir()
-        print("6")
         
         if load_dir:
             self.logic.segmentation.load_index(
@@ -272,23 +265,25 @@ class MainWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             return
 
     def onBtnLoadDirectory(self):
-        print("button stuff")
         with SetParameters(self.parameter_node) as parameter_node:
-            print("setting the button")
             parameter_node.SetParameter("attempted_segmentation_dir_path", self.ui.pthLoadSegmentationDirectory.currentPath)
 
     def onPrevButton(self):
-        self.parameter_node.SetParameter("index", self.logic.segmentation.index - 1)
+        self.parameter_node.SetParameter("index", str(self.logic.segmentation.index - 1))
 
     def onNextButton(self):
-        self.parameter_node.SetParameter("index", self.logic.segmentation.index + 1)
+        self.parameter_node.SetParameter("index", str(self.logic.segmentation.index + 1))
 
     def onCompareButton(self):
         if self.logic.segmentation.view == View.STANDARD:
-            self.parameter_node.SetParameter("view", str(View.SUB))
+            with SetParameters(self.parameter_node) as parameter_node:
+                parameter_node.SetParameter("view", str(View.SUB.value))
+                parameter_node.SetParameter("index", str(self.logic.segmentation.index - 1))
             return
         if self.logic.segmentation.view == View.SUB:
-            self.parameter_node.SetParameter("view", str(View.STANDARD))
+            with SetParameters(self.parameter_node) as parameter_node:
+                parameter_node.SetParameter("view", str(View.STANDARD.value))
+                parameter_node.SetParameter("index", str(self.logic.segmentation.index + 1))
             return
 
 
