@@ -130,13 +130,6 @@ class MainWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         # so that when the scene is saved and reloaded, these settings are restored.
         self.setParameterNode(self.logic.getParameterNode())
 
-        # Select default input nodes if nothing is selected yet to save a few clicks for the user
-        # if self.parameter_node.GetNodeReference("InputVolume"):
-        #     return
-        # firstVolumeNode = slicer.mrmlScene.GetFirstNodeByClass("vtkMRMLScalarVolumeNode")
-        # if firstVolumeNode:
-        #     self.parameter_node.SetNodeReferenceID("InputVolume", firstVolumeNode.GetID())
-
     def setParameterNode(self, inputParameterNode):
         """
         Set and observe parameter node.
