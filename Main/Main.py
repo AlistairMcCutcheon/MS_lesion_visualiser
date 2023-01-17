@@ -4,12 +4,10 @@ from pathlib import Path
 import vtk
 import slicer
 from slicer.ScriptedLoadableModule import *
-from slicer.util import VTKObservationMixin, getNode, getNodes
+from slicer.util import VTKObservationMixin
 from packages.utils.context_managers import TempDir, SetParameters, BlockMethod
-from packages.segmentation.segmentation import SegmentationDir, View
+from packages.segmentation.segmentation import SegmentationDir, View, InvalidSegmentationDirError
 from packages.testing.test_segmentation_dir import SegmentationDirectoryTest
-# import nibabel as nib
-import numpy as np
 #
 # Main
 #
@@ -100,6 +98,7 @@ class MainWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         pass
         # Make sure parameter node exists and observed
         self.initializeParameterNode()
+        self.updateGUIFromParameterNode()
 
     def exit(self):
         """
@@ -132,11 +131,11 @@ class MainWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.setParameterNode(self.logic.getParameterNode())
 
         # Select default input nodes if nothing is selected yet to save a few clicks for the user
-        if self.parameter_node.GetNodeReference("InputVolume"):
-            return
-        firstVolumeNode = slicer.mrmlScene.GetFirstNodeByClass("vtkMRMLScalarVolumeNode")
-        if firstVolumeNode:
-            self.parameter_node.SetNodeReferenceID("InputVolume", firstVolumeNode.GetID())
+        # if self.parameter_node.GetNodeReference("InputVolume"):
+        #     return
+        # firstVolumeNode = slicer.mrmlScene.GetFirstNodeByClass("vtkMRMLScalarVolumeNode")
+        # if firstVolumeNode:
+        #     self.parameter_node.SetNodeReferenceID("InputVolume", firstVolumeNode.GetID())
 
     def setParameterNode(self, inputParameterNode):
         """
@@ -177,18 +176,14 @@ class MainWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
                 parameter_node.SetParameter("segmentation_img_index", "0")
 
         def index_modified() -> bool:
-            if self.logic.segmentation is None:
-                return os.path.isdir(self.parameter_node.GetParameter("segmentation_dir_path"))
             return not self.logic.segmentation.index == int(self.parameter_node.GetParameter("index"))
 
         def view_modified() -> bool:
-            if self.logic.segmentation is None:
-                return os.path.isdir(self.parameter_node.GetParameter("segmentation_dir_path"))
             return not self.logic.segmentation.view.value == int(self.parameter_node.GetParameter("view"))
 
         def seg_dir_modified() -> bool:
             if self.logic.segmentation is None:
-                return os.path.isdir(self.parameter_node.GetParameter("segmentation_dir_path"))
+                return self.parameter_node.GetParameter("segmentation_dir_path") != ""
 
             return not self.logic.segmentation.dir_path == self.parameter_node.GetParameter("segmentation_dir_path")
 
@@ -197,17 +192,23 @@ class MainWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
                 return
             if self.logic.segmentation is not None:
                 self.logic.segmentation.unload()
-            self.logic.segmentation = SegmentationDir(self.parameter_node.GetParameter("segmentation_dir_path"))
+            try:
+                self.logic.segmentation = SegmentationDir(self.parameter_node.GetParameter("segmentation_dir_path"))
+            except InvalidSegmentationDirError as e:
+                logging.warn(str(e))
+                self.logic.segmentation = None
+                with SetParameters(self.parameter_node) as parameter_node:
+                    self.logic.set_segmentation_default_params(parameter_node)
+                    parameter_node.SetParameter("attempted_segmentation_dir_path", "")
         
 
         if self.parameter_node is None:
             return
 
         compare_seg_dir_and_attempted_seg_dir()
-        load_dir = seg_dir_modified() or index_modified() or view_modified()
         update_seg_dir()
         
-        if load_dir:
+        if self.logic.segmentation is not None and (view_modified() or index_modified()):
             self.logic.segmentation.load_index(
                 View(int(self.parameter_node.GetParameter("view"))),
                 int(self.parameter_node.GetParameter("index"))
@@ -308,20 +309,21 @@ class MainLogic(ScriptedLoadableModuleLogic):
         ScriptedLoadableModuleLogic.__init__(self)
         self.segmentation = None
 
-    def set_default_params(self, parameterNode):
+    def set_default_params(self, parameter_node):
         """
         Initialize parameter node with default settings.
         """
-        if not parameterNode.GetParameter("segmentation_dir_path"):
-            parameterNode.SetParameter("segmentation_dir_path", "")
-        if not parameterNode.GetParameter("attempted_segmentation_dir_path"):
-            parameterNode.SetParameter("attempted_segmentation_dir_path", "")
-        if not parameterNode.GetParameter("intermediate_attempted_segmentation_dir_path"):
-            parameterNode.SetParameter("intermediate_attempted_segmentation_dir_path", "")
-        if not parameterNode.GetParameter("view"):
-            parameterNode.SetParameter("view", "1")
-        if not parameterNode.GetParameter("index"):
-            parameterNode.SetParameter("index", "0")
+        self.set_gui_default_params(parameter_node)
+        self.set_segmentation_default_params(parameter_node)
+
+    def set_gui_default_params(self, parameter_node):
+        parameter_node.SetParameter("attempted_segmentation_dir_path", "")
+        parameter_node.SetParameter("intermediate_attempted_segmentation_dir_path", "")
+
+    def set_segmentation_default_params(self, parameter_node):
+        parameter_node.SetParameter("segmentation_dir_path", "")
+        parameter_node.SetParameter("view", "1")
+        parameter_node.SetParameter("index", "0")
 
     def load_index(self, view: View, index: int) -> None:
         self.segmentation.load_index(view, index)
