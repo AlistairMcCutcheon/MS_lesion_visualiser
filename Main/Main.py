@@ -7,7 +7,6 @@ from slicer.ScriptedLoadableModule import *
 from slicer.util import VTKObservationMixin, getNode, getNodes
 from packages.utils.context_managers import TempDir, SetParameters, BlockMethod
 from packages.segmentation.segmentation import SegmentationDir, View
-from packages.segmentation.file_types import file_type_to_name, FileType
 from packages.testing.test_segmentation_dir import SegmentationDirectoryTest
 # import nibabel as nib
 import numpy as np
@@ -159,8 +158,6 @@ class MainWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         # Make sure parameter node is initialized (needed for module reload)
         # self.initializeParameterNode()
 
-        self.segmentation = None
-
     def cleanup(self):
         """
         Called when the application closes and the module widget is destroyed.
@@ -298,27 +295,26 @@ class MainWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         if not os.path.isdir(segmentation_dir_path):
             return
 
-        if self.segmentation is not None:
-            self.segmentation.unload()
+        if self.logic.segmentation is not None:
+            self.logic.segmentation.unload()
 
-        self.ui.pthLoadSegmentationDirectory.currentPath = "/home/alistair/Code/MS_lesion_visualiser/test_assets/vnet_predictions/Public_Patient1"
-        self.segmentation = SegmentationDir(self.ui.pthLoadSegmentationDirectory.currentPath)
+        self.logic.segmentation = SegmentationDir(self.ui.pthLoadSegmentationDirectory.currentPath)
         # with SetParameters(self._parameterNode) as parameter_node:
         #     parameter_node.SetParameter("segmentation_dir_path", self.ui.pthLoadSegmentationDirectory.currentPath)
         #     parameter_node.SetParameter("segmentation_img_index", "0")
         self.load_segmentation_img_index(0)
 
     def load_segmentation_img_index(self, index: int) -> None:
-        self.segmentation.load_index(View.STANDARD, index)
+        self.logic.segmentation.load_index(View.STANDARD, index)
 
-        self.ui.nextButton.setEnabled(self.segmentation.index_is_valid_for_img(index + 1))
-        self.ui.prevButton.setEnabled(self.segmentation.index_is_valid_for_img(index - 1))
-        self.ui.btnCompare.setEnabled(self.segmentation.index_is_valid_for_sub_img(index - 1))
+        self.ui.nextButton.setEnabled(self.logic.segmentation.index_is_valid_for_img(index + 1))
+        self.ui.prevButton.setEnabled(self.logic.segmentation.index_is_valid_for_img(index - 1))
+        self.ui.btnCompare.setEnabled(self.logic.segmentation.index_is_valid_for_sub_img(index - 1))
         self.set_view(View.STANDARD)
 
 
     def load_segmentation_sub_img_index(self, index: int) -> None:
-        self.segmentation.load_index(View.SUB, index)
+        self.logic.segmentation.load_index(View.SUB, index)
 
         self.ui.nextButton.setEnabled(False)
         self.ui.prevButton.setEnabled(False)
@@ -335,17 +331,17 @@ class MainWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         
 
     def onPrevButton(self):
-        self.load_segmentation_img_index(self.segmentation.index - 1)
+        self.load_segmentation_img_index(self.logic.segmentation.index - 1)
 
     def onNextButton(self):
-        self.load_segmentation_img_index(self.segmentation.index + 1)
+        self.load_segmentation_img_index(self.logic.segmentation.index + 1)
 
     def onCompareButton(self):
-        if self.segmentation.view == View.STANDARD:
-            self.load_segmentation_sub_img_index(self.segmentation.index - 1)
+        if self.logic.segmentation.view == View.STANDARD:
+            self.load_segmentation_sub_img_index(self.logic.segmentation.index - 1)
             return
-        if self.segmentation.view == View.SUB:
-            self.load_segmentation_img_index(self.segmentation.index + 1)
+        if self.logic.segmentation.view == View.SUB:
+            self.load_segmentation_img_index(self.logic.segmentation.index + 1)
             return
 
 
@@ -368,6 +364,7 @@ class MainLogic(ScriptedLoadableModuleLogic):
         Called when the logic class is instantiated. Can be used for initializing member variables.
         """
         ScriptedLoadableModuleLogic.__init__(self)
+        self.segmentation = None
 
     def setDefaultParameters(self, parameterNode):
         """
