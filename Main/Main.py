@@ -303,7 +303,8 @@ class MainLogic(ScriptedLoadableModuleLogic):
                 return
             with SetParameters(parameter_node) as param_node:
                 param_node.SetParameter("segmentation_dir_path", attempted_seg_dir_path)
-                param_node.SetParameter("segmentation_img_index", "0")
+                param_node.SetParameter("index", "0")
+                param_node.SetParameter("view", "1")
 
         def index_modified() -> bool:
             return not self.segmentation.index == int(parameter_node.GetParameter("index"))
