@@ -123,10 +123,12 @@ class SegmentationDir:
             )
 
     def load_segmentation_node_if_not_exists(self, path, name, search_pattern):
+        self.setSegmentationNodesToInvisible()
         try:
             slicer.util.getNode(f"{search_pattern}").SetDisplayVisibility(1)
         except MRMLNodeNotFoundException:
             slicer.util.loadSegmentation(path, properties={"name": name})
+
 
     def set_volume_node_to_visible(self, volume_node):
         appLogic = slicer.app.applicationLogic()
@@ -140,7 +142,6 @@ class SegmentationDir:
             slicer.mrmlScene.GetNthNodeByClass(i, 'vtkMRMLSegmentationNode').SetDisplayVisibility(0)
 
     def load_index(self, view: View, index: int):
-        self.setSegmentationNodesToInvisible()
 
         volume_filetype, segmentation_filetype = view_to_filetypes(view)
 

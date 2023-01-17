@@ -299,12 +299,6 @@ class MainLogic(ScriptedLoadableModuleLogic):
                 param_node.SetParameter("index", "0")
                 param_node.SetParameter("view", "1")
 
-        def index_modified() -> bool:
-            return not self.segmentation.index == int(parameter_node.GetParameter("index"))
-
-        def view_modified() -> bool:
-            return not self.segmentation.view.value == int(parameter_node.GetParameter("view"))
-
         def seg_dir_modified() -> bool:
             if self.segmentation is None:
                 return parameter_node.GetParameter("segmentation_dir_path") != "none"
@@ -328,7 +322,7 @@ class MainLogic(ScriptedLoadableModuleLogic):
         compare_seg_dir_and_attempted_seg_dir()
         update_seg_dir()
         
-        if self.segmentation is not None and (view_modified() or index_modified()):
+        if self.segmentation is not None:
             self.segmentation.load_index(
                 View(int(parameter_node.GetParameter("view"))),
                 int(parameter_node.GetParameter("index"))
@@ -343,6 +337,7 @@ class MainLogic(ScriptedLoadableModuleLogic):
 
         self.segmentation = SegmentationDir(dir_path)
         self.load_index(View.STANDARD, 0)
+
 
 #
 # MainTest
