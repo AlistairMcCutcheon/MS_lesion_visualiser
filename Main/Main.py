@@ -152,7 +152,9 @@ class MainWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         if self.parameter_node is not None:
             self.removeObserver(self.parameter_node, vtk.vtkCommand.ModifiedEvent, self.updateGUIFromParameterNode)
         self.parameter_node = inputParameterNode
+        print("might observe")
         if self.parameter_node is not None:
+            print("observing")
             self.addObserver(self.parameter_node, vtk.vtkCommand.ModifiedEvent, self.updateGUIFromParameterNode)
 
         # Initial GUI update
@@ -177,27 +179,33 @@ class MainWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
                 parameter_node.SetParameter("segmentation_img_index", "0")
 
         def index_modified() -> bool:
-            return not self.logic.segmentation.index == int(self.parameter_node.GetParameter("index"))
+            return not self.logic.segmentation is None and not self.logic.segmentation.index == int(self.parameter_node.GetParameter("index"))
 
         def view_modified() -> bool:
-            return not self.logic.segmentation.view.value == int(self.parameter_node.GetParameter("view"))
+            return not self.logic.segmentation is None and not self.logic.segmentation.view.value == int(self.parameter_node.GetParameter("view"))
 
         def seg_dir_modified() -> bool:
-            return not self.logic.segmentation.dir_path == self.parameter_node.GetParameter("segmentation_dir_path")
+            return not self.logic.segmentation is None and not self.logic.segmentation.dir_path == self.parameter_node.GetParameter("segmentation_dir_path")
 
         def update_seg_dir():
             if not seg_dir_modified():
+                print("not modified")
                 return
-            if self.logic.segmentation is not None:
-                self.logic.segmentation.unload()
+            print("modified")
+            self.logic.segmentation.unload()
             self.logic.segmentation = SegmentationDir(self.parameter_node.GetParameter("segmentation_dir_path"))
         
+
+        print("4")
         if self.parameter_node is None:
             return
+        print("5")
 
         compare_seg_dir_and_attempted_seg_dir()
         load_dir = seg_dir_modified() or index_modified() or view_modified()
+        print(load_dir)
         update_seg_dir()
+        print("6")
         
         if load_dir:
             self.logic.segmentation.load_index(
@@ -211,19 +219,18 @@ class MainWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
                 View(int(self.parameter_node.GetParameter("view"))),
                 int(self.parameter_node.GetParameter("index"))
             )
-            self.set_load_directory(self.parameter_node.GetParameter("attempted_segmentation_dir_path"))
+            self.set_load_directory(self.parameter_node.GetParameter("intermediate_attempted_segmentation_dir_path"))
 
     def updateParameterNodeFromGUI(self, caller=None, event=None):
         """
         This method is called when the user makes any change in the GUI.
         The changes are saved into the parameter node (so that they are restored when the scene is saved and loaded).
         """
-
         if self.parameter_node is None:
             return
-
         with SetParameters(self.parameter_node) as parameter_node:
             parameter_node.SetParameter("intermediate_attempted_segmentation_dir_path", self.ui.pthLoadSegmentationDirectory.currentPath)
+
 
     def set_load_directory(self, dir_path: str):
         if not os.path.isdir(dir_path):
@@ -238,6 +245,12 @@ class MainWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
 
     def set_view_and_index(self, view: View, index: int) -> None:
+        if self.logic.segmentation is None:
+            self.ui.btnCompare.text = "Compare with Previous Image"
+            self.ui.nextButton.setEnabled(False)
+            self.ui.prevButton.setEnabled(False)
+            self.ui.btnCompare.setEnabled(False)
+            return
         if view == View.STANDARD:
             self.ui.btnCompare.text = "Compare with Previous Image"
             self.ui.nextButton.setEnabled(self.logic.segmentation.index_is_valid_for_img(index + 1))
@@ -252,7 +265,9 @@ class MainWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             return
 
     def onBtnLoadDirectory(self):
+        print("button stuff")
         with SetParameters(self.parameter_node) as parameter_node:
+            print("setting the button")
             parameter_node.SetParameter("attempted_segmentation_dir_path", self.ui.pthLoadSegmentationDirectory.currentPath)
 
     def onPrevButton(self):
