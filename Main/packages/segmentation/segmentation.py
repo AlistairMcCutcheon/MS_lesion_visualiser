@@ -10,7 +10,7 @@ from enum import Enum, auto
 
 
 class View(Enum):
-    STANDARD = auto()
+    STANDARD = 1
     SUB = auto()
 
 def view_to_filetypes(view: View) -> tuple[FileType, FileType]:
@@ -28,11 +28,11 @@ class InvalidSegmentationDirError(ValueError):
 
 class SegmentationDir:
     def __init__(self, dir_path: str) -> None:
-        self.dir_path = Path(dir_path)
+        self._dir_path = Path(dir_path)
         try:
             self.validate()
         except FileNotFoundError as e:
-            raise InvalidSegmentationDirError(self.dir_path) from e
+            raise InvalidSegmentationDirError(self._dir_path) from e
 
         self.imgs_paths = {}
         self.imgs_segmentations_paths = {}
@@ -44,12 +44,12 @@ class SegmentationDir:
         self.index = None
         
     def validate(self) -> None:
-        if not self.dir_path.exists():
-            raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), str(self.dir_path))
-        if not (self.dir_path / self.get_path(FileType.IMG, 0)).exists():
-            raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), str(self.dir_path / self.get_path(FileType.IMG, 0)))
-        if not (self.dir_path / self.get_path(FileType.IMG_SEGMENTATION, 0)).exists():
-            raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), str(self.dir_path / self.get_path(FileType.IMG_SEGMENTATION, 0)))
+        if not self._dir_path.exists():
+            raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), str(self._dir_path))
+        if not (self._dir_path / self.get_path(FileType.IMG, 0)).exists():
+            raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), str(self._dir_path / self.get_path(FileType.IMG, 0)))
+        if not (self._dir_path / self.get_path(FileType.IMG_SEGMENTATION, 0)).exists():
+            raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), str(self._dir_path / self.get_path(FileType.IMG_SEGMENTATION, 0)))
 
     def load_paths(self):
         self.imgs_paths[0] = self.get_path(FileType.IMG, 0)
@@ -62,7 +62,7 @@ class SegmentationDir:
                 img_path = self.get_path(FileType.IMG, img_index)
                 img_segmentation_path = self.get_path(FileType.IMG_SEGMENTATION, img_index)
             except FileNotFoundError as e:
-                raise InvalidSegmentationDirError(self.dir_path) from e
+                raise InvalidSegmentationDirError(self._dir_path) from e
             else:
                 self.imgs_paths[img_index] = img_path
                 self.imgs_segmentations_paths[img_index] = img_segmentation_path
@@ -74,8 +74,8 @@ class SegmentationDir:
                 logging.warning(e)
 
     def index_has_no_imgs(self, index) -> bool:
-        img_path = Path(self.dir_path) / file_type_to_name(FileType.IMG, index)
-        img_segmentation_path = Path(self.dir_path) / file_type_to_name(FileType.IMG_SEGMENTATION, index)
+        img_path = Path(self._dir_path) / file_type_to_name(FileType.IMG, index)
+        img_segmentation_path = Path(self._dir_path) / file_type_to_name(FileType.IMG_SEGMENTATION, index)
         return not img_path.exists() and not img_segmentation_path.exists()
 
     def index_is_valid_for_img(self, index):
@@ -85,13 +85,10 @@ class SegmentationDir:
         return index in self.sub_imgs_paths and index in self.sub_imgs_segmentations_paths
 
     def get_path(self, file_type: FileType, index) -> str:
-        path = Path(self.dir_path) / file_type_to_name(file_type, index)
+        path = Path(self._dir_path) / file_type_to_name(file_type, index)
         if not Path(path).exists():
             raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), str(path))
         return str(path)
-
-    def load(self):
-        pass
 
     def unload(self):
         def remove_node(search_pattern):
@@ -168,3 +165,12 @@ class SegmentationDir:
         self.view = view
         self.index = index
 
+    @property
+    def dir_path(self):
+        return str(self._dir_path)
+
+    @dir_path.setter
+    def dir_path(self, dir_path):
+        self._dir_path = Path(dir_path)
+
+    
