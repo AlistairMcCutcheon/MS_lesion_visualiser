@@ -125,9 +125,16 @@ class SegmentationDir:
     def load_segmentation_node_if_not_exists(self, path, name, search_pattern):
         self.setSegmentationNodesToInvisible()
         try:
-            slicer.util.getNode(f"{search_pattern}").SetDisplayVisibility(1)
+            seg_node = slicer.util.getNode(f"{search_pattern}")
         except MRMLNodeNotFoundException:
-            slicer.util.loadSegmentation(path, properties={"name": name})
+            seg_node = slicer.util.loadSegmentation(path, properties={"name": name})
+            seg_node.CreateClosedSurfaceRepresentation()
+        else:
+            seg_node.SetDisplayVisibility(1)
+            
+        lm = slicer.app.layoutManager()
+        lm.threeDWidget(0).threeDController().resetFocalPoint()
+        
 
 
     def set_volume_node_to_visible(self, volume_node):
