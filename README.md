@@ -19,8 +19,3 @@ The data must be in the format:
     - img_sub_0_segmentation.nrrd
 
 There must be the same number of images as segmentations. Sub images are images meant to be a comparison between images of two timepoints (for instance, a subtraction). If there are n images, then there can be n-1 sub images.
-
-## Lisense:
-Apache 2.0
-
-
