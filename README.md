@@ -5,6 +5,7 @@ A Slicer 3D extension to visualise multiple sclerosis lesions, and toggle betwee
 
 The extension contains a single module, which reads in multiple sclerosis imagery and segmentations in a specific format, and displays them. It also allows you to easily toggle between images in different time points. At present, there is a single module "Main" which handles loading, displaying and switching between the data. 
 
+
 ## Tutorial:
 The data must be in the format:
 
@@ -19,3 +20,5 @@ The data must be in the format:
     - img_sub_0_segmentation.nrrd
 
 There must be the same number of images as segmentations. Sub images are images meant to be a comparison between images of two timepoints (for instance, a subtraction). If there are n images, then there can be n-1 sub images.
+
+Sample data can be found here: https://github.com/AlistairMcCutcheon/SlicerMSLesionVisualiserSampleData
