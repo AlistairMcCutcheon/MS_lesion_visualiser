@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16.3...3.19.7 FATAL_ERROR)
 
-project(MS_lesion_visualiser)
+project(MSLesionVisualiser)
 
 #-----------------------------------------------------------------------------
 # Extension meta-information
