@@ -4,12 +4,12 @@ project(MS_lesion_visualiser)
 
 #-----------------------------------------------------------------------------
 # Extension meta-information
-set(EXTENSION_HOMEPAGE "https://www.slicer.org/wiki/Documentation/Nightly/Extensions/MS_lesion_visualiser")
+set(EXTENSION_HOMEPAGE "https://github.com/AlistairMcCutcheon/SlicerMSLesionVisualiser/")
 set(EXTENSION_CATEGORY "Segmentation")
 set(EXTENSION_CONTRIBUTORS "Alistair McCutcheon (Monash University)")
-set(EXTENSION_DESCRIPTION "A tool to visualise multiple sclerosis lesion MRI images and segmentations.")
-set(EXTENSION_ICONURL "https://www.example.com/Slicer/Extensions/MS_lesion_visualiser.png")
-set(EXTENSION_SCREENSHOTURLS "https://www.example.com/Slicer/Extensions/MS_lesion_visualiser/Screenshots/1.png")
+set(EXTENSION_DESCRIPTION "Loads and displays multi-timepoint MS lesion images and segmentations.")
+set(EXTENSION_ICONURL "https://raw.githubusercontent.com/AlistairMcCutcheon/SlicerMSLesionVisualiser/main/assets/icon.png")
+set(EXTENSION_SCREENSHOTURLS "https://github.com/AlistairMcCutcheon/SlicerMSLesionVisualiser/blob/main/assets/screenshot.png")
 set(EXTENSION_DEPENDS "NA") # Specified as a list or "NA" if no dependencies
 
 #-----------------------------------------------------------------------------
@@ -19,8 +19,6 @@ include(${Slicer_USE_FILE})
 
 #-----------------------------------------------------------------------------
 # Extension modules
-add_subdirectory(LoadMSLesiondirectory)
-add_subdirectory(test_module)
 add_subdirectory(Main)
 ## NEXT_MODULE
 
