@@ -49,11 +49,6 @@ class MainWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self.logic = None
         self.parameter_node = None
 
-        slicer.app.connect("startupCompleted()", load_sample_data)
-
-    def load_sample_data(self):
-        pass
-
     def setup(self):
         """
         Called when the user opens the module the first time and the widget is initialized.
