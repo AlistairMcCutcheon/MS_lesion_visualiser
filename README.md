@@ -3,7 +3,7 @@ A Slicer 3D extension to visualise multiple sclerosis lesions, and toggle betwee
 
 ![alt text](assets/screenshot.png "Sreenshot of the Extension")
 
-The extension contains a single module, which reads in multiple sclerosis imagery and segmentations in a specific format, and displays them. It also allows you to easily toggle between images in different time points. At present, there is a single module "Main" which handles loading, displaying and switching between the data. 
+The extension contains a single module, which reads in multiple sclerosis imagery and segmentations in a specific format, and displays them. It also allows you to easily toggle between images in different time points. At present, there is a single module "LoadMSLesionData" which handles loading, displaying and switching between the data. 
 
 
 ## Tutorial:

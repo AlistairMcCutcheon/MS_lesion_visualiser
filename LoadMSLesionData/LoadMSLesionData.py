@@ -9,17 +9,17 @@ from packages.utils.context_managers import TempDir, SetParameters, BlockMethod
 from packages.segmentation.segmentation import SegmentationDir, View, InvalidSegmentationDirError
 from packages.testing.test_segmentation_dir import SegmentationDirectoryTest
 #
-# Main
+# LoadMSLesionData
 #
 
-class Main(ScriptedLoadableModule):
+class LoadMSLesionData(ScriptedLoadableModule):
     """Uses ScriptedLoadableModule base class, available at:
     https://github.com/Slicer/Slicer/blob/main/Base/Python/slicer/ScriptedLoadableModule.py
     """
 
     def __init__(self, parent):
         ScriptedLoadableModule.__init__(self, parent)
-        self.parent.title = "Main"  # TODO: make this more human readable by adding spaces
+        self.parent.title = "LoadMSLesionData"  # TODO: make this more human readable by adding spaces
         self.parent.categories = ["Segmentation"]  # category (folders where the module shows up in the module selector)
         self.parent.dependencies = []  # TODO: add here list of module names that this module requires
         self.parent.contributors = ["Alistair McCutcheon (Monash University)"]
@@ -32,10 +32,10 @@ See more information in <a href="https://github.com/organization/projectname#Mai
 
 
 #
-# MainWidget
+# LoadMSLesionDataWidget
 #
 
-class MainWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
+class LoadMSLesionDataWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
     """Uses ScriptedLoadableModuleWidget base class, available at:
     https://github.com/Slicer/Slicer/blob/main/Base/Python/slicer/ScriptedLoadableModule.py
     """
@@ -57,7 +57,7 @@ class MainWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
         # Load widget from .ui file (created by Qt Designer).
         # Additional widgets can be instantiated manually and added to self.layout.
-        uiWidget = slicer.util.loadUI(self.resourcePath('UI/Main.ui'))
+        uiWidget = slicer.util.loadUI(self.resourcePath('UI/LoadMSLesionData.ui'))
         self.layout.addWidget(uiWidget)
         self.ui = slicer.util.childWidgetVariables(uiWidget)
 
@@ -66,7 +66,7 @@ class MainWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         # "setMRMLScene(vtkMRMLScene*)" slot.
         uiWidget.setMRMLScene(slicer.mrmlScene)
 
-        self.logic = MainLogic()
+        self.logic = LoadMSLesionDataLogic()
 
         # Connections
 
@@ -236,10 +236,10 @@ class MainWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
 
 
 #
-# MainLogic
+# LoadMSLesionDataLogic
 #
 
-class MainLogic(ScriptedLoadableModuleLogic):
+class LoadMSLesionDataLogic(ScriptedLoadableModuleLogic):
     """This class should implement all the actual
     computation done by your module.  The interface
     should be such that other python code can import
@@ -340,10 +340,10 @@ class MainLogic(ScriptedLoadableModuleLogic):
 
 
 #
-# MainTest
+# LoadMSLesionDataTest
 #
 
-class MainTest(ScriptedLoadableModuleTest):
+class LoadMSLesionDataTest(ScriptedLoadableModuleTest):
     """
     This is the test case for your scripted module.
     Uses ScriptedLoadableModuleTest base class, available at:
