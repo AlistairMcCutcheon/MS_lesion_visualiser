@@ -19,6 +19,8 @@ slicerMacroBuildScriptedModule(
   WITH_GENERIC_TESTS
   )
 
+add_subdirectory(packages)
+
 #-----------------------------------------------------------------------------
 if(BUILD_TESTING)
 
