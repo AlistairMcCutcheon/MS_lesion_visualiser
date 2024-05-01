@@ -4,12 +4,12 @@ project(SlicerMSLesionVisualiser)
 
 #-----------------------------------------------------------------------------
 # Extension meta-information
-set(EXTENSION_HOMEPAGE "https://github.com/AlistairMcCutcheon/SlicerMSLesionVisualiser/")
+set(EXTENSION_HOMEPAGE "https://github.com/AlistairMcCutcheon/SlicerMSLesionVisualiser#readme")
 set(EXTENSION_CATEGORY "Segmentation")
 set(EXTENSION_CONTRIBUTORS "Alistair McCutcheon (Monash University)")
-set(EXTENSION_DESCRIPTION "Loads and displays multi-timepoint MS lesion images and segmentations.")
+set(EXTENSION_DESCRIPTION "Loads and displays multi-timepoint MS (multiple sclerosis) lesion images and segmentations.")
 set(EXTENSION_ICONURL "https://raw.githubusercontent.com/AlistairMcCutcheon/SlicerMSLesionVisualiser/main/assets/icon.png")
-set(EXTENSION_SCREENSHOTURLS "https://github.com/AlistairMcCutcheon/SlicerMSLesionVisualiser/blob/main/assets/screenshot.png")
+set(EXTENSION_SCREENSHOTURLS "https://raw.githubusercontent.com/AlistairMcCutcheon/SlicerMSLesionVisualiser/main/assets/screenshot.png")
 set(EXTENSION_DEPENDS "NA") # Specified as a list or "NA" if no dependencies
 
 #-----------------------------------------------------------------------------
